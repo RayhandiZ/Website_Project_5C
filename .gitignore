@@ -1,0 +1,5 @@
+scripts/.verify.mjs
+scripts/.smoke.cjs
+scripts/.nilai.mjs
+node_modules
+dist

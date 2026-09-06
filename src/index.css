@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f4f5fb;
+  --surface: #ffffff;
+  --surface-2: #f8f8fd;
+  --border: #e5e6f1;
+  --border-strong: #d2d4e6;
+  --text-primary: #14162f;
+  --text-secondary: #545879;
+  --text-muted: #8a8ea9;
+
+  --brand: #312e81;
+  --brand-deep: #1e1b4b;
+  --brand-ink: #4b46b8;
+  --brand-soft: #ecebfa;
+  --accent: #e0a33a;
+
+  /* 5C categorical slots — validated (light, surface #ffffff) */
+  --c1: #2a78d6;
+  --c2: #eb6834;
+  --c3: #1baf7a;
+  --c4: #eda100;
+  --c5: #e87ba4;
+
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  --grid: #eceef6;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #0c1320;
+  --surface: #131c2b;
+  --surface-2: #18223a;
+  --border: #24304a;
+  --border-strong: #33415f;
+  --text-primary: #f2f4fb;
+  --text-secondary: #a9b2c9;
+  --text-muted: #7b869e;
+
+  --brand: #4f46b8;
+  --brand-deep: #0f1730;
+  --brand-ink: #a5a1f0;
+  --brand-soft: #1d2145;
+  --accent: #e8b455;
+
+  /* 5C categorical slots — validated (dark, surface #131c2b) */
+  --c1: #3987e5;
+  --c2: #d95926;
+  --c3: #199e70;
+  --c4: #c98500;
+  --c5: #d55181;
+
+  --grid: #212c44;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; border: 3px solid var(--bg); }
+
+@layer components {
+  .card {
+    @apply bg-surface border border-line rounded-2xl shadow-card;
+  }
+  .card-pad { @apply p-5 sm:p-6; }
+  .label {
+    @apply text-[11px] font-bold uppercase tracking-[.08em] text-ink-3;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply btn bg-brand text-white hover:brightness-110 active:brightness-95; }
+  .btn-ghost   { @apply btn border border-line text-ink-2 hover:bg-surface-2; }
+  .field {
+    @apply w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-ink
+           placeholder:text-ink-3 transition focus:border-brand-ink focus:bg-surface;
+  }
+  .table-cell { @apply px-4 py-3 text-sm text-ink-2 align-middle; }
+}
+
+.animate-rise { animation: rise .35s cubic-bezier(.22,.68,.35,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* --------------------------------------------------------------------------
+   Cetak — transkrip harus terbaca sebagai dokumen, bukan tangkapan layar
+   aplikasi. Navigasi, sidebar, dan tombol disembunyikan; latar dipaksa putih.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ffffff;
+    --border: #c9ccd8;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-muted: #555555;
+  }
+
+  header.sticky,
+  footer,
+  aside {
+    display: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}
+
+/* Hormati preferensi pengguna yang membatasi gerak. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
