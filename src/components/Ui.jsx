@@ -109,9 +109,9 @@ export function SegeraHadir({ judul, fase, children }) {
       <p className="label">Fase {fase}</p>
       <h1 className="mt-2 text-[22px] font-extrabold tracking-tight text-ink">{judul}</h1>
       <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-2">{children}</p>
-      <p className="mt-4 text-[13px] text-ink-3">
+      {/* <p className="mt-4 text-[13px] text-ink-3">
         Model data dan aturan bisnisnya sudah siap; tinggal antarmukanya yang dirakit.
-      </p>
+      </p> */}
     </Card>
   )
 }

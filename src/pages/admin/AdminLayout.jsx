@@ -12,7 +12,7 @@ import {
   IconUpload,
   IconUsers,
 } from '../../components/Icons'
-import { PERIODE_AKTIF, PENGAJUAN_KOREKSI, STUDENTS, labelPeriode, ringkas } from '../../lib/mockData'
+import { PERIODE_AKTIF, PENGAJUAN_KOREKSI, labelPeriode } from '../../lib/mockData'
 import { useStore } from '../../lib/store'
 
 const NAV = [
@@ -26,7 +26,6 @@ export default function AdminLayout() {
   // Ikut menghitung ulang begitu ada nilai yang masuk dari panel Kemahasiswaan.
   useStore()
   const { admin } = useAuth()
-  const r = ringkas(STUDENTS)
   const koreksi = PENGAJUAN_KOREKSI.filter((k) => k.status === 'menunggu').length
 
   const menu = [
@@ -53,19 +52,8 @@ export default function AdminLayout() {
                 <p className="mt-1 text-[12.5px] text-white/65">{admin.officer}</p>
                 <p className="mt-3 text-[12px] text-white/55">Periode {labelPeriode(PERIODE_AKTIF)}</p>
               </div>
-              <dl className="divide-y divide-line">
-                {[
-                  ['Mahasiswa terpantau', r.total.toLocaleString('id-ID')],
-                  ['Rata-rata nilai', r.rata ?? '—'],
-                  ['Transkrip final', r.final.toLocaleString('id-ID')],
-                  ['Koreksi menunggu', koreksi],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between gap-3 px-5 py-3">
-                    <dt className="text-[13px] text-ink-2">{k}</dt>
-                    <dd className="text-[14.5px] font-extrabold tabular-nums text-ink">{v}</dd>
-                  </div>
-                ))}
-              </dl>
+              {/* Angka ringkasan sengaja tidak diulang di sini — tempatnya di halaman
+                  Ringkasan. Pekerjaan yang menunggu sudah ditandai lencana pada menu. */}
             </div>
 
             <SideMenu items={menu} />

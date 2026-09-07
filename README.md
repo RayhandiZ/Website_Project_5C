@@ -103,6 +103,45 @@ Tiga persona bawaan untuk memperagakan gating semester:
 Kasus sertifikat ada di angkatan 2024 yang sudah dikunci, lewat panel admin:
 `DEMO-LAYAK` (berhak), `DEMO-KOSONG` (satu komponen kosong), `DEMO-RENDAH` (nilai 64).
 
+## Ringkasan admin sengaja dibuat tenang
+
+Penggunanya dosen dan staf dengan rentang usia dan kebiasaan digital yang lebar, jadi halaman
+`/admin` **bukan** dashboard padat. Aturan yang dipegang:
+
+- **tiga angka saja** — mahasiswa terpantau, rata-rata nilai, dan nilai yang sudah final;
+- **satu grafik saja** — donat sebaran huruf mutu — dan **tidak ada filter bertingkat**;
+  grafik lainnya tinggal di halaman rinciannya;
+- setiap angka besar disertai **satu persentase** dengan bilah tipis; persentasenya selalu
+  tertulis angkanya, bilah hanya membantu membandingkan sekilas;
+- blok **Perlu dikerjakan** menuliskan tugas sebagai kalimat utuh, bukan istilah teknis, dan
+  hilang sendiri kalau memang tidak ada yang tertunda;
+- setiap tautan menyebut tujuannya (**Lihat selengkapnya**, *Masukkan nilai*, *Tinjau
+  pengajuan*), digarisbawahi, dan bidang kliknya besar;
+- ukuran huruf mulai 14,5–16 px dengan jarak antarbaris longgar; tidak ada teks abu-abu kecil
+  yang membawa informasi penting;
+- angka ringkasan **tidak diulang** di bilah sisi — pekerjaan yang menunggu cukup ditandai
+  lencana pada menu.
+
+Halaman rincian (Data Mahasiswa, Program Studi, Input Nilai) tetap padat sebagaimana mestinya;
+kepadatan itu memang dibutuhkan di sana.
+
+### Kenapa donat, dan kenapa warnanya satu hue
+
+Donat dipakai karena tugas datanya memang bagian-terhadap-keseluruhan dengan lima segmen —
+masih di dalam batas aman enam segmen. Donat dua irisan tidak dipakai karena itu sekadar satu
+angka, dan donat untuk membandingkan nilai yang berdekatan juga dihindari; angka pastinya tetap
+tertulis di daftar sebelah kanan dan pada tampilan tabel.
+
+Huruf mutu A–D adalah **skala berurutan**, bukan empat kategori setara, jadi warnanya satu hue
+biru bertingkat (`--mutu-a` … `--mutu-d` di `index.css`) — makin gelap makin baik pada latar
+terang, dan dibalik pada latar gelap. Keduanya sudah lolos pemeriksaan ordinal ramp: lightness
+monoton, jarak antarlangkah ≥ 0,06, dan ujung terangnya 2,11:1 terhadap latar. “Belum Memenuhi”
+bukan huruf mutu melainkan status, jadi ia memakai token status merah dan selalu berlabel.
+
+Penyebut persentasenya adalah **jumlah mahasiswa yang sudah punya nilai**, bukan seluruh
+mahasiswa — kalau ada yang belum dinilai sama sekali, jumlahnya disebutkan di bawah grafik
+supaya persentasenya tetap genap 100%.
+
 ## Program studi
 
 Empat fakultas, **14 program studi jenjang S1 dan D3**. Program magister (Manajemen Teknologi

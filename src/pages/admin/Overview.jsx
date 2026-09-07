@@ -1,325 +1,309 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import FilterBar, { DEFAULT_FILTER } from '../../components/FilterBar'
-import { Card, CardHeader, CatatanKaki, HurufBadge, ScoreBar, StatTile } from '../../components/Ui'
-import AspectBars from '../../components/charts/AspectBars'
-import ChartFrame from '../../components/charts/ChartFrame'
+import { Card } from '../../components/Ui'
+import MutuDonut from '../../components/charts/MutuDonut'
 import {
-  IconAlert,
   IconBuilding,
   IconCertificate,
   IconChevronRight,
-  IconDownload,
-  IconGauge,
+  IconList,
+  IconTable,
+  IconUpload,
   IconUsers,
 } from '../../components/Icons'
-import { CATATAN_BOBOT_SEMENTARA, CONFIG } from '../../lib/config'
-import { RUBRIK } from '../../lib/scoring'
+import { CONFIG } from '../../lib/config'
 import {
-  byProgram,
-  filterStudents,
+  COHORTS,
+  PENGAJUAN_KOREKSI,
+  PERIODE_AKTIF,
+  STUDENTS,
   kelengkapanMatriks,
-  rataArea,
-  rataAspek,
+  labelPeriode,
   ringkas,
   transkripOf,
 } from '../../lib/mockData'
 import { useStore } from '../../lib/store'
+import { useAuth } from '../../lib/auth'
 
-const WARNA_HURUF = { A: 'var(--good)', B: 'var(--brand-ink)', C: 'var(--warning)', D: 'var(--serious)' }
+/* --------------------------------------------------------------------------
+   Halaman pertama yang dilihat dosen dan staf kemahasiswaan.
+
+   Sengaja dibuat tenang: sedikit angka, huruf besar, kalimat biasa, dan tautan
+   yang menyebut tujuannya. Grafiknya SATU saja — sebaran huruf mutu — karena
+   itulah pertanyaan yang paling sering ditanyakan sekilas. Filter bertingkat,
+   tabel padat, dan grafik lainnya tinggal di halaman rincian masing-masing.
+   Halaman ini hanya menjawab dua hal: bagaimana keadaannya, dan apa yang perlu
+   saya kerjakan.
+   -------------------------------------------------------------------------- */
+
+/* Satu angka besar, satu kalimat penjelas, dan — bila bermakna — satu
+   persentase dengan bilah tipis. Persentasenya selalu ditulis angkanya, bilah
+   hanya membantu membandingkan sekilas. */
+function Angka({ nilai, satuan, judul, keterangan, persen, persenLabel }) {
+  return (
+    <Card className="px-6 py-7">
+      <p className="text-[15px] font-semibold text-ink-2">{judul}</p>
+      <p className="mt-2 flex items-baseline gap-2">
+        <span className="text-[46px] font-extrabold leading-none tracking-tight text-ink tabular-nums">
+          {nilai}
+        </span>
+        {satuan ? <span className="text-[18px] font-semibold text-ink-2">{satuan}</span> : null}
+      </p>
+
+      {typeof persen === 'number' ? (
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[14px] text-ink-2">{persenLabel}</span>
+            <span className="text-[18px] font-extrabold tabular-nums text-ink">{persen}%</span>
+          </div>
+          <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--grid)]">
+            <div
+              className="h-full rounded-full bg-brand-ink"
+              style={{ width: Math.max(2, Math.min(100, persen)) + '%' }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-[14.5px] leading-relaxed text-ink-2">{keterangan}</p>
+    </Card>
+  )
+}
+
+/* Baris tugas: kalimat lengkap, lalu tautan yang menyebut ke mana perginya. */
+function Tugas({ jumlah, kalimat, tautan, ke }) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-6 py-5 last:border-0">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-soft text-[17px] font-extrabold text-brand-ink tabular-nums">
+        {jumlah}
+      </span>
+      <span className="min-w-[240px] flex-1 text-[15.5px] leading-relaxed text-ink">{kalimat}</span>
+      <Link
+        to={ke}
+        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-bold text-brand-ink underline underline-offset-4 hover:bg-surface-2"
+      >
+        {tautan}
+        <IconChevronRight size={17} />
+      </Link>
+    </li>
+  )
+}
+
+/* Tautan ke halaman lain — judul besar, satu kalimat, dan "Lihat selengkapnya". */
+function Pintu({ ke, judul, keterangan, icon: Icon }) {
+  return (
+    <li>
+      <Link
+        to={ke}
+        className="flex h-full flex-col rounded-2xl border border-line bg-surface px-6 py-6 transition hover:border-brand-ink hover:bg-surface-2"
+      >
+        <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-soft text-brand-ink">
+          <Icon size={24} />
+        </span>
+        <span className="mt-4 text-[17px] font-bold text-ink">{judul}</span>
+        <span className="mt-1.5 text-[14.5px] leading-relaxed text-ink-2">{keterangan}</span>
+        <span className="mt-4 inline-flex items-center gap-1.5 text-[15px] font-bold text-brand-ink underline underline-offset-4">
+          Lihat selengkapnya
+          <IconChevronRight size={17} />
+        </span>
+      </Link>
+    </li>
+  )
+}
 
 export default function Overview() {
   // Ikut menghitung ulang begitu ada nilai yang masuk dari panel Kemahasiswaan.
   useStore()
-  const [filter, setFilter] = useState(DEFAULT_FILTER)
-  const rows = useMemo(() => filterStudents(filter), [filter])
+  const { admin } = useAuth()
 
-  const r = useMemo(() => ringkas(rows), [rows])
-  const area = useMemo(() => (rows.length ? rataArea(rows) : []), [rows])
-  const aspek = useMemo(() => (rows.length ? rataAspek(rows) : []), [rows])
-  const matriks = useMemo(() => kelengkapanMatriks(rows), [rows])
-  const programs = useMemo(() => byProgram(rows), [rows])
+  const rows = STUDENTS
 
-  const berisiko = useMemo(
+  const angka = useMemo(() => ringkas(rows), [rows])
+
+  const belumMasuk = useMemo(() => {
+    let sisa = 0
+    for (const b of kelengkapanMatriks(rows)) {
+      for (const s of Object.values(b.sumber)) sisa += s.total - s.terisi
+    }
+    return sisa
+  }, [rows])
+
+  const koreksi = PENGAJUAN_KOREKSI.filter((k) => k.status === 'menunggu').length
+
+  const bagi = (n) => (angka.total ? Math.round((n / angka.total) * 100) : 0)
+  const persenLengkap = useMemo(() => {
+    let terisi = 0
+    let total = 0
+    for (const b of kelengkapanMatriks(rows)) {
+      for (const x of Object.values(b.sumber)) {
+        terisi += x.terisi
+        total += x.total
+      }
+    }
+    return total ? Math.round((terisi / total) * 100) : 0
+  }, [rows])
+
+  const perluPerhatian = useMemo(
     () =>
-      rows
-        .filter((s) => s.semesterAktif >= CONFIG.TOTAL_SEMESTER_PROGRAM)
-        .map((s) => ({ s, t: transkripOf(s) }))
-        .filter((x) => x.t.akhir.nilai != null && x.t.akhir.nilai < CONFIG.AMBANG_SERTIFIKAT)
-        .sort((a, b) => a.t.akhir.nilai - b.t.akhir.nilai)
-        .slice(0, 6),
+      rows.filter((s) => {
+        if (s.semesterAktif < CONFIG.TOTAL_SEMESTER_PROGRAM) return false
+        const n = transkripOf(s).akhir.nilai
+        return n != null && n < CONFIG.AMBANG_SERTIFIKAT
+      }).length,
     [rows],
   )
 
-  const cakupan =
-    filter.program !== 'Semua'
-      ? filter.program
-      : filter.faculty !== 'Semua'
-        ? 'Fakultas ' + filter.faculty
-        : 'Seluruh universitas'
+  const siapDikunci = useMemo(
+    () =>
+      COHORTS.filter(
+        (c) =>
+          c.status === 'aktif' &&
+          c.semesterAktif >= CONFIG.TOTAL_SEMESTER_PROGRAM &&
+          rows.some((s) => s.angkatanId === c.id),
+      ).length,
+    [rows],
+  )
 
-  // Bar aspek meminta bentuk { aspek, nilai, terkunci } — di tingkat agregat
-  // tidak ada yang terkunci karena populasi mencakup banyak semester.
-  const barisAspek = aspek.map((a) => ({ aspek: a, nilai: a.nilai, terkunci: false }))
+  const tugas = [
+    belumMasuk > 0 && {
+      jumlah: belumMasuk.toLocaleString('id-ID'),
+      kalimat: 'nilai komponen asesmen belum dimasukkan oleh dosen atau unit penilai.',
+      tautan: 'Masukkan nilai',
+      ke: '/admin/nilai',
+    },
+    koreksi > 0 && {
+      jumlah: koreksi,
+      kalimat: 'pengajuan koreksi nilai dari mahasiswa menunggu keputusan Anda.',
+      tautan: 'Tinjau pengajuan',
+      ke: '/admin/nilai',
+    },
+    perluPerhatian > 0 && {
+      jumlah: perluPerhatian.toLocaleString('id-ID'),
+      kalimat:
+        'mahasiswa sudah sampai Semester ' +
+        CONFIG.TOTAL_SEMESTER_PROGRAM +
+        ' tetapi nilainya masih di bawah ' +
+        CONFIG.AMBANG_SERTIFIKAT +
+        ', sehingga belum berhak atas sertifikat.',
+      tautan: 'Lihat daftarnya',
+      ke: '/admin/mahasiswa',
+    },
+    siapDikunci > 0 && {
+      jumlah: siapDikunci,
+      kalimat: 'angkatan sudah menuntaskan tiga semester dan bisa dikunci untuk penerbitan sertifikat.',
+      tautan: 'Buka angkatan',
+      ke: '/admin/angkatan',
+    },
+  ].filter(Boolean)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">Ringkasan capaian CPMK</h1>
-          <p className="mt-1.5 text-[14px] text-ink-2">
-            {cakupan} — {r.total.toLocaleString('id-ID')} mahasiswa
-          </p>
-        </div>
-        <button type="button" className="btn-ghost">
-          <IconDownload size={17} />
-          Unduh laporan
-        </button>
-      </div>
+    <div className="space-y-8">
+      {/* --------------------------------- kepala -------------------------------- */}
+      <header>
+        <h1 className="text-[30px] font-extrabold leading-tight tracking-tight text-ink">Ringkasan</h1>
+        <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-ink-2">
+          {admin.name} · periode {labelPeriode(PERIODE_AKTIF)}. Halaman ini menampilkan keadaan
+          menyeluruh dan pekerjaan yang menunggu. Rincian tiap bagian ada di halaman terpisah.
+        </p>
+      </header>
 
-      <FilterBar value={filter} onChange={setFilter} withSearch={false} />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile
-          label="Mahasiswa terpantau"
-          value={r.total.toLocaleString('id-ID')}
-          icon={IconUsers}
-          hint={programs.length + ' program studi'}
+      {/* --------------------------------- angka --------------------------------- */}
+      <section className="grid gap-5 md:grid-cols-3">
+        <Angka
+          judul="Mahasiswa terpantau"
+          nilai={angka.total.toLocaleString('id-ID')}
+          persen={persenLengkap}
+          persenLabel="Nilai yang sudah masuk"
+          keterangan="Tersebar di empat fakultas, angkatan 2024 sampai 2026."
         />
-        <StatTile label="Rata-rata nilai" value={r.rata ?? '—'} unit="/ 100" icon={IconGauge} hint={CATATAN_BOBOT_SEMENTARA} />
-        <StatTile
-          label="Transkrip final"
-          value={r.final.toLocaleString('id-ID')}
-          icon={IconCertificate}
-          tone="good"
-          hint="Seluruh 10 aspek sudah dikunci"
+        <Angka
+          judul="Rata-rata nilai softskill"
+          nilai={angka.rata ?? '—'}
+          satuan="dari 100"
+          persen={bagi(angka.diAtasAmbang)}
+          persenLabel={'Di atas batas ' + CONFIG.AMBANG_SERTIFIKAT}
+          keterangan={'Batas kelulusan pembinaan adalah ' + CONFIG.AMBANG_SERTIFIKAT + '.'}
         />
-        <StatTile
-          label="Di bawah ambang"
-          value={(r.total - r.diAtasAmbang).toLocaleString('id-ID')}
-          icon={IconAlert}
-          tone="critical"
-          hint={'Nilai di bawah ' + CONFIG.AMBANG_SERTIFIKAT}
+        <Angka
+          judul="Nilai sudah final"
+          nilai={angka.final.toLocaleString('id-ID')}
+          satuan={'dari ' + angka.total.toLocaleString('id-ID')}
+          persen={bagi(angka.final)}
+          persenLabel="Sudah dikunci"
+          keterangan="Mahasiswa yang seluruh sepuluh aspeknya sudah dinilai dan dikunci."
         />
-      </div>
+      </section>
 
-      {/* kelengkapan data — kebutuhan utama unit pengelola */}
-      <Card>
-        <CardHeader
-          title="Kelengkapan nilai"
-          subtitle="Persentase komponen asesmen yang sudah masuk, per semester dan per sumber"
-          icon={IconGauge}
-        />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] border-collapse">
-            <thead>
-              <tr className="border-b border-line bg-surface-2">
-                {['Semester', 'PDP', 'MK Humaniora', 'Kemahasiswaan'].map((h, i) => (
-                  <th
-                    key={h}
-                    className={
-                      'px-5 py-3 text-[11px] font-bold uppercase tracking-[.07em] text-ink-3 ' +
-                      (i ? 'text-right' : 'text-left')
-                    }
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {matriks.map((b) => (
-                <tr key={b.semester} className="border-b border-line last:border-0">
-                  <td className="px-5 py-3 text-[14px] font-bold text-ink">Semester {b.semester}</td>
-                  {['PDP', 'MK', 'ENGAGEMENT'].map((s) => {
-                    const d = b.sumber[s]
-                    return (
-                      <td key={s} className="px-5 py-3">
-                        {d.persen == null ? (
-                          <span className="block text-right text-[12.5px] text-ink-3">tidak ada komponen</span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2.5">
-                            <span className="w-24">
-                              <ScoreBar value={d.persen} color="var(--c1)" height={7} />
-                            </span>
-                            <span className="w-11 text-right text-[13.5px] font-bold tabular-nums text-ink">
-                              {d.persen}%
-                            </span>
-                          </div>
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-5 pb-4 sm:px-6">
-          <CatatanKaki>
-            Kolom bertanda “tidak ada komponen” berarti sumber itu memang belum punya komponen asesmen pada
-            semester tersebut di dokumen kurikulum — bukan berarti nilainya nol.
-          </CatatanKaki>
-        </div>
-      </Card>
+      {/* -------------------------------- sebaran -------------------------------- */}
+      <section>
+        <MutuDonut huruf={angka.huruf} totalMahasiswa={angka.total} />
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        {/* sebaran huruf mutu */}
-        <ChartFrame
-          title="Sebaran huruf mutu"
-          subtitle="Proporsi mahasiswa pada tiap huruf mutu resmi"
-          height={150}
-          legend={[...RUBRIK.map((x) => ({ label: x.huruf + ' · ' + x.label, color: WARNA_HURUF[x.huruf] })), { label: 'Belum Memenuhi', color: 'var(--critical)' }]}
-          table={{
-            head: ['Huruf', 'Mahasiswa', 'Proporsi'],
-            rows: [...RUBRIK.map((x) => x.huruf), 'belum'].map((h) => [
-              h === 'belum' ? 'Belum Memenuhi' : h,
-              r.huruf[h],
-              Math.round((r.huruf[h] / Math.max(1, r.total)) * 100) + '%',
-            ]),
-          }}
-        >
-          <div className="px-3 sm:px-4">
-            <div className="flex h-11 w-full gap-[2px] overflow-hidden rounded-xl">
-              {[...RUBRIK.map((x) => x.huruf), 'belum'].map((h) => {
-                const pct = (r.huruf[h] / Math.max(1, r.total)) * 100
-                if (pct <= 0) return null
-                return (
-                  <div
-                    key={h}
-                    className="grid place-items-center text-[12px] font-extrabold text-white"
-                    style={{ background: WARNA_HURUF[h] ?? 'var(--critical)', flex: pct + ' 0 0' }}
-                    title={h + ': ' + r.huruf[h] + ' mahasiswa'}
-                  >
-                    {pct >= 8 ? h === 'belum' ? '<60' : h : ''}
-                  </div>
-                )
-              })}
-            </div>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-5">
-              {[...RUBRIK.map((x) => x.huruf), 'belum'].map((h) => (
-                <li key={h} className="rounded-xl border border-line px-3 py-2.5">
-                  <p className="flex items-center gap-2 text-[12px] font-bold text-ink-2">
-                    <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: WARNA_HURUF[h] ?? 'var(--critical)' }} />
-                    {h === 'belum' ? '<60' : h}
-                  </p>
-                  <p className="mt-1 text-[18px] font-extrabold tabular-nums text-ink">{r.huruf[h]}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </ChartFrame>
-
-        {/* rata-rata per area */}
-        <Card>
-          <CardHeader title="Rata-rata per area pengembangan" subtitle="Tiga area, diagregasi dari aspek CPMK" icon={IconBuilding} />
-          <ul className="divide-y divide-line">
-            {area.map((a) => (
-              <li key={a.area.id} className="px-5 py-4 sm:px-6">
-                <div className="mb-2 flex items-baseline justify-between gap-3">
-                  <span className="flex items-center gap-2.5 text-[14px] font-bold text-ink">
-                    <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: a.area.warna }} />
-                    {a.area.id} · {a.area.nama}
-                  </span>
-                  <span className="flex items-baseline gap-2.5">
-                    <span className="text-[15px] font-extrabold tabular-nums text-ink">{a.nilai ?? '—'}</span>
-                    <HurufBadge nilai={a.nilai} />
-                  </span>
-                </div>
-                {a.nilai == null ? (
-                  <div className="h-[10px] rounded-full border border-dashed border-line" />
-                ) : (
-                  <ScoreBar value={a.nilai} color={a.area.warna} />
-                )}
-                <p className="mt-1.5 text-[12px] text-ink-3">{a.area.ringkas}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <AspectBars
-        rows={barisAspek}
-        title="Rata-rata per aspek CPMK"
-        subtitle="Sepuluh aspek pada filter yang aktif"
-        catatan={'Hanya mahasiswa yang semesternya sudah membuka aspek terkait yang ikut dihitung. ' + CATATAN_BOBOT_SEMENTARA}
-      />
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader
-            title="Capaian per program studi"
-            subtitle="Lima teratas berdasarkan rata-rata nilai"
-            icon={IconBuilding}
-            action={
-              <Link to="/admin/program-studi" className="btn-ghost !px-3 !py-2 text-[13px]">
-                Semua
-                <IconChevronRight size={15} />
-              </Link>
-            }
-          />
-          <ul className="divide-y divide-line">
-            {programs.slice(0, 5).map((p) => (
-              <li key={p.program} className="flex items-center gap-4 px-5 py-3.5 sm:px-6">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-bold text-ink">{p.program}</p>
-                  <p className="mt-0.5 text-[12.5px] text-ink-3">
-                    {p.total} mahasiswa · {p.final} transkrip final
-                  </p>
-                </div>
-                <span className="w-24 shrink-0">
-                  <ScoreBar value={p.rata ?? 0} color="var(--c1)" height={8} />
-                </span>
-                <span className="w-8 shrink-0 text-right text-[14.5px] font-extrabold tabular-nums text-ink">
-                  {p.rata ?? '—'}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="px-5 pb-4 sm:px-6">
-            <CatatanKaki>
-              Bukan peringkat: komposisi mata kuliah, jadwal asesmen, dan program kemahasiswaan tiap program studi
-              berbeda, sehingga angkanya tidak sebanding satu sama lain.
-            </CatatanKaki>
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Berisiko tidak memenuhi syarat sertifikat"
-            subtitle={'Mahasiswa semester ' + CONFIG.TOTAL_SEMESTER_PROGRAM + ' dengan nilai di bawah ambang'}
-            icon={IconAlert}
-          />
-          {berisiko.length ? (
-            <ul className="divide-y divide-line">
-              {berisiko.map(({ s, t }) => (
-                <li key={s.id}>
-                  <Link
-                    to={'/admin/mahasiswa/' + s.id}
-                    className="flex items-center gap-4 px-5 py-3.5 transition hover:bg-surface-2 sm:px-6"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-bold text-ink">{s.name}</p>
-                      <p className="mt-0.5 truncate text-[12.5px] text-ink-3">
-                        {s.nim} · {s.program} · {s.angkatanLabel}
-                      </p>
-                    </div>
-                    <HurufBadge nilai={t.akhir.nilai} />
-                    <span className="w-8 shrink-0 text-right text-[14.5px] font-extrabold tabular-nums text-ink">
-                      {t.akhir.nilai}
-                    </span>
-                    <IconChevronRight size={16} className="shrink-0 text-ink-3" />
-                  </Link>
-                </li>
+      {/* ---------------------------- perlu dikerjakan --------------------------- */}
+      <section>
+        <h2 className="mb-3 text-[20px] font-extrabold tracking-tight text-ink">Perlu dikerjakan</h2>
+        <Card className="overflow-hidden">
+          {tugas.length ? (
+            <ul>
+              {tugas.map((t) => (
+                <Tugas key={t.tautan + t.kalimat} {...t} />
               ))}
             </ul>
           ) : (
-            <p className="card-pad text-[13.5px] text-ink-2">
-              Tidak ada mahasiswa semester {CONFIG.TOTAL_SEMESTER_PROGRAM} di bawah ambang pada filter ini.
+            <p className="px-6 py-8 text-[15.5px] leading-relaxed text-ink-2">
+              Tidak ada pekerjaan yang tertunda. Seluruh nilai sudah masuk dan tidak ada pengajuan koreksi.
             </p>
           )}
         </Card>
-      </div>
+      </section>
+
+      {/* ------------------------------ halaman lain ----------------------------- */}
+      <section>
+        <h2 className="mb-3 text-[20px] font-extrabold tracking-tight text-ink">Halaman lain</h2>
+        <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <Pintu
+            ke="/admin/nilai"
+            icon={IconUpload}
+            judul="Input &amp; Import Nilai"
+            keterangan="Masukkan nilai satu per satu, atau unggah rekap dari Excel."
+          />
+          <Pintu
+            ke="/admin/mahasiswa"
+            icon={IconUsers}
+            judul="Data Mahasiswa"
+            keterangan="Cari mahasiswa, lihat nilainya, dan buka transkrip lengkapnya."
+          />
+          <Pintu
+            ke="/admin/program-studi"
+            icon={IconBuilding}
+            judul="Program Studi"
+            keterangan="Bandingkan capaian antar program studi, fakultas, dan angkatan."
+          />
+          <Pintu
+            ke="/admin/angkatan"
+            icon={IconCertificate}
+            judul="Angkatan &amp; Sertifikat"
+            keterangan="Kunci angkatan yang sudah selesai, lalu terbitkan sertifikatnya."
+          />
+          <Pintu
+            ke="/admin/kurikulum"
+            icon={IconTable}
+            judul="Kurikulum CPMK"
+            keterangan="Sepuluh aspek penilaian, komponen asesmen, dan bobotnya."
+          />
+          <Pintu
+            ke="/admin/log"
+            icon={IconList}
+            judul="Log Aktivitas"
+            keterangan="Catatan setiap perubahan nilai beserta siapa yang mengubahnya."
+          />
+        </ul>
+      </section>
+
+      <p className="max-w-2xl text-[14px] leading-relaxed text-ink-3">
+        Angka rata-rata masih memakai bobot sementara yang belum ditetapkan Biro Kemahasiswaan,
+        sehingga dapat berubah bila bobotnya nanti disesuaikan.
+      </p>
     </div>
   )
 }

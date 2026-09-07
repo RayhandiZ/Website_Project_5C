@@ -14,6 +14,21 @@ const SESI = { student: JSON.stringify({ role:'student', email:'a@student.umn.ac
                admin:   JSON.stringify({ role:'admin',   email:'a@umn.ac.id', name:'Y', initials:'KH' }) }
 
 const ISI = {
+  '/admin': [
+    [/Perlu dikerjakan/, 'ada daftar pekerjaan yang menunggu'],
+    [/(Lihat selengkapnya[\s\S]*){6}/, 'enam tautan Lihat selengkapnya ke halaman lain'],
+    [/Mahasiswa terpantau[\s\S]{0,400}Rata-rata nilai softskill[\s\S]{0,400}Nilai sudah final/, 'hanya tiga angka utama'],
+    [/bobot sementara/, 'peringatan bobot sementara tetap ada'],
+    [/Sebaran huruf mutu/, 'ada satu grafik: sebaran huruf mutu'],
+    [/Nilai yang sudah masuk[\s\S]{0,40}%/, 'persentase nilai yang sudah masuk'],
+    [/Di atas batas 70[\s\S]{0,40}%/, 'persentase di atas batas kelulusan'],
+    [/Sudah dikunci[\s\S]{0,40}%/, 'persentase nilai yang sudah final'],
+    [/Huruf A[\s\S]{0,200}Huruf B[\s\S]{0,200}Huruf C/, 'tiap irisan diberi label huruf, bukan warna saja'],
+    [/sudah dinilai/, 'pusat donat menyebut dasar penghitungannya'],
+    [/Kelengkapan nilai/, 'tidak ada lagi tabel kelengkapan padat', false],
+    [/Rata-rata per aspek CPMK/, 'tidak ada lagi bar sepuluh aspek', false],
+    [/Fakultas[\s\S]{0,60}Program studi[\s\S]{0,60}Angkatan[\s\S]{0,60}Semester/, 'tidak ada filter bertingkat', false],
+  ],
   '/admin/nilai': [
     [/Pilih semester terlebih dahulu/, 'gerbang semester menutup area kerja'],
     [/Semester wajib dipilih sebelum data bisa dimasukkan/, 'dropdown semester ditandai wajib'],
@@ -47,10 +62,11 @@ const RUTE = [
       else {
         console.log('OK     ' + rute.padEnd(30) + String(html.length).padStart(7) + ' char   ' + nama)
         const teks = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-        for (const [pola, keterangan] of (ISI[rute] || [])) {
+        for (const [pola, keterangan, harusAda = true] of (ISI[rute] || [])) {
           const ada = pola.test(teks)
-          if (!ada) gagal++
-          console.log('       ' + (ada ? 'v ' : 'x ') + keterangan)
+          const ok = harusAda ? ada : !ada
+          if (!ok) gagal++
+          console.log('       ' + (ok ? 'v ' : 'x ') + keterangan)
         }
       }
     } catch (e) { gagal++; console.log('CRASH  ' + rute + '  ' + e.message) }

@@ -31,6 +31,14 @@
   --serious: #ec835a;
   --critical: #d03b3b;
 
+  /* Huruf mutu adalah skala BERURUTAN (A > B > C > D), jadi warnanya satu hue
+     bertingkat — bukan empat hue berbeda. Tervalidasi sebagai ordinal ramp:
+     lightness monoton, jarak antarlangkah >= 0.06, ujung terang 2.11:1. */
+  --mutu-a: #1c5cab;
+  --mutu-b: #2a78d6;
+  --mutu-c: #5598e7;
+  --mutu-d: #86b6ef;
+
   --grid: #eceef6;
 }
 
@@ -57,6 +65,12 @@
   --c3: #199e70;
   --c4: #c98500;
   --c5: #d55181;
+
+  /* Pada latar gelap urutannya dibalik: makin terang berarti makin baik. */
+  --mutu-a: #cde2fb;
+  --mutu-b: #86b6ef;
+  --mutu-c: #3987e5;
+  --mutu-d: #184f95;
 
   --grid: #212c44;
 }

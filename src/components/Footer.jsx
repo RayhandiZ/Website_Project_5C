@@ -46,7 +46,7 @@ export default function Footer() {
           <address className="mt-4 space-y-2 text-[13.5px] not-italic leading-relaxed text-white/75">
             <p>Biro Kemahasiswaan & Humaniora</p>
             <p>Gedung A, Lantai 9</p>
-            <p>Senin–Jumat, 09.00–16.00 WIB</p>
+            <p>Senin–Jumat, 08.00–17.00 WIB</p>
             <p className="pt-1 font-semibold text-white">softskill@umn.ac.id</p>
           </address>
         </div>
