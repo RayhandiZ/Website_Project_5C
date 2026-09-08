@@ -118,7 +118,9 @@ function PanelStatusAspek({ student }) {
   const terbuka = t.aspek.filter((a) => !a.terkunci)
 
   const ubah = (aspekId, status) =>
-    setPenguncian({ nim: student.nim, aspekId, status, aktor: admin.officer })
+    Promise.resolve(setPenguncian({ nim: student.nim, aspekId, status, aktor: admin.officer })).catch((e) =>
+      window.alert(e.message),
+    )
 
   return (
     <Card className="print:hidden">

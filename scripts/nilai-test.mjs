@@ -29,7 +29,7 @@ console.log('Mahasiswa   :', mhs.name, '·', mhs.nim, '· angkatan', mhs.angkata
 console.log('Komponen    :', komponen.id, '—', komponen.label)
 console.log('Nilai lama  :', sebelum, '| nilai aspek', aspek.kode, '=', nilaiAspekSebelum)
 
-const batch = simpanBatch({
+const batch = await simpanBatch({
   sumber: komponen.sumber,
   semester: 3,
   angkatanId: '2025',
@@ -49,7 +49,7 @@ cek('Batch tercatat', BATCH_SESI[0].id === batch.id, batch.id)
 cek('Cache transkrip ikut segar', nilaiAspekSesudah !== nilaiAspekSebelum,
   nilaiAspekSebelum + ' → ' + nilaiAspekSesudah)
 
-rollbackBatch(batch.id)
+await rollbackBatch(batch.id)
 const kembali = mhs.nilai[aspek.id].komponen[komponen.id]?.nilai ?? null
 const nilaiAspekKembali = transkripOf(mhs).aspekById[aspek.id].nilai
 
@@ -72,7 +72,7 @@ const komponenKosong = aspekKosong.komponenKosong[0]
 console.log('Mahasiswa :', kosong.name, '· aspek', aspekKosong.aspek.kode, '· komponen', komponenKosong.id)
 console.log('Terisi sebelum:', aspekKosong.komponenTerisi + '/' + aspekKosong.komponenTotal, '· status', aspekKosong.status)
 
-const b2 = simpanBatch({
+const b2 = await simpanBatch({
   sumber: komponenKosong.sumber,
   semester: aspekKosong.aspek.semester,
   angkatanId: kosong.angkatanId,
@@ -85,7 +85,7 @@ const setelah = transkripOf(kosong).aspekById[aspekKosong.aspek.id]
 console.log('Terisi sesudah:', setelah.komponenTerisi + '/' + setelah.komponenTotal, '· status', setelah.status)
 cek('Komponen kosong kini terisi', setelah.komponenTerisi === aspekKosong.komponenTerisi + 1)
 
-rollbackBatch(b2.id)
+await rollbackBatch(b2.id)
 const balik = transkripOf(kosong).aspekById[aspekKosong.aspek.id]
 cek('Rollback menghapus nilai baru', balik.komponenTerisi === aspekKosong.komponenTerisi)
 
@@ -210,7 +210,7 @@ const target = mhsS1[0]
 const aspekTarget = getKomponenById(dihitung.entri[0].komponenId).aspekId
 const sebelumIsi = transkripOf(target).aspekById[aspekTarget].komponenTerisi
 
-const b3 = simpanBatch({
+const b3 = await simpanBatch({
   sumber: 'MK',
   semester: 1,
   angkatanId: '2026',
@@ -224,7 +224,7 @@ console.log('\nAspek ' + aspekTarget + ': terisi ' + sebelumIsi + ' → ' + sesu
 cek('Batch terisi otomatis', b3.jumlah === dihitung.entri.length, b3.jumlah + ' nilai')
 cek('Nilai aspek ikut dihitung ulang', sesudahIsi.nilai != null)
 
-rollbackBatch(b3.id)
+await rollbackBatch(b3.id)
 cek('Rollback mengembalikan keadaan', transkripOf(target).aspekById[aspekTarget].komponenTerisi === sebelumIsi)
 
 console.log(gagal ? '\n' + gagal + ' pemeriksaan GAGAL' : '\nSemua pemeriksaan lulus')
@@ -247,7 +247,7 @@ console.log('Sebelum input   : nilai akhir', tSebelum.akhir.nilai,
   '= ' + aspekTarget2.nilai)
 console.log('Admin mengisi   :', komponenTarget.id, '=', 95)
 
-const b4 = simpanBatch({
+const b4 = await simpanBatch({
   sumber: komponenTarget.sumber,
   semester: aspekTarget2.aspek.semester,
   angkatanId: persona.angkatanId,
@@ -271,7 +271,7 @@ cek('Penilai terbawa ke transkrip mahasiswa',
   aspekSesudah.komponen.find((k) => k.id === komponenTarget.id)?.penilai === 'Andini Prameswari, M.Psi.')
 cek('Tercatat di riwayat mahasiswa', auditUntuk(persona.nim).some((l) => l.batchId === b4.id))
 
-rollbackBatch(b4.id)
+await rollbackBatch(b4.id)
 const tBalik = transkripOf(personaAktif('?sem=2'))
 cek('Rollback ikut terlihat di sisi mahasiswa',
   tBalik.akhir.nilai === tSebelum.akhir.nilai,
@@ -287,7 +287,7 @@ const p2 = personaAktif('?sem=2')
 const aspekP = transkripOf(p2).aspek.find((a) => !a.terkunci && a.komponenKosong.length > 0)
 const kompP = aspekP.komponenKosong[0]
 
-const b5 = simpanBatch({
+const b5 = await simpanBatch({
   sumber: kompP.sumber,
   semester: aspekP.aspek.semester,
   angkatanId: p2.angkatanId,
@@ -317,7 +317,7 @@ cek('Batch ikut pulih', BATCH_SESI.some((b) => b.id === b5.id))
 cek('Transkrip mahasiswa ikut terhitung',
   transkripOf(p2).aspekById[aspekP.aspek.id].komponenTerisi === aspekP.komponenTerisi + 1)
 
-bersihkanPerubahan()
+await bersihkanPerubahan()
 cek('Bersihkan mengembalikan data contoh',
   transkripOf(p2).aspekById[aspekP.aspek.id].komponenTerisi === aspekP.komponenTerisi)
 cek('Penyimpanan ikut dikosongkan', localStorage.getItem('sk5c.nilai') === null)
@@ -332,7 +332,7 @@ const { CONFIG } = await import('../src/lib/config.js')
 const { setPenguncian } = await import('../src/lib/store.js')
 const { bolehTandaiFinal } = await import('../src/lib/rules.js')
 
-bersihkanPerubahan()
+await bersihkanPerubahan()
 
 const mhsF = personaAktif('?sem=2')
 const aspekF = transkripOf(mhsF).aspek.find(
@@ -347,7 +347,7 @@ cek('Belum lengkap tidak bisa dikunci', bolehTandaiFinal(mhsF, aspekF.aspek.id).
   bolehTandaiFinal(mhsF, aspekF.aspek.id).alasan)
 
 /* Dosen memasukkan seluruh sisa komponen. */
-const bF = simpanBatch({
+const bF = await simpanBatch({
   sumber: kosongF[0].sumber,
   semester: aspekF.aspek.semester,
   angkatanId: mhsF.angkatanId,
@@ -363,7 +363,7 @@ cek('Mode otomatis: lengkap langsung final', lengkapF.status === 'final')
 cek('Tidak ada lagi alasan sementara', lengkapF.alasanSementara === null)
 
 /* Admin menahan aspek itu sebagai sementara. */
-setPenguncian({ nim: mhsF.nim, aspekId: aspekF.aspek.id, status: 'sementara', aktor: 'Andini Prameswari, M.Psi.' })
+await setPenguncian({ nim: mhsF.nim, aspekId: aspekF.aspek.id, status: 'sementara', aktor: 'Andini Prameswari, M.Psi.' })
 const ditahan = transkripOf(mhsF).aspekById[aspekF.aspek.id]
 console.log('Ditahan   : status', ditahan.status, '.', ditahan.alasanSementara)
 cek('Penandaan sementara menang atas mode otomatis', ditahan.status === 'berjalan')
@@ -371,27 +371,27 @@ cek('Alasan penahanan disebutkan', String(ditahan.alasanSementara).includes('Dit
 cek('Ditandai siap dikunci', ditahan.siapDikunci === true)
 
 /* Mode manual: lengkap tetapi belum ditandai. */
-setPenguncian({ nim: mhsF.nim, aspekId: aspekF.aspek.id, status: null, aktor: 'Andini' })
+await setPenguncian({ nim: mhsF.nim, aspekId: aspekF.aspek.id, status: null, aktor: 'Andini' })
 CONFIG.PENGUNCIAN_ASPEK = 'manual'
 const manual = transkripOf(mhsF).aspekById[aspekF.aspek.id]
 console.log('Mode manual: status', manual.status, '.', manual.alasanSementara)
 cek('Mode manual menahan sampai ditandai', manual.status === 'berjalan')
 cek('Alasan menyebut penguncian', String(manual.alasanSementara).includes('menunggu penguncian'))
 
-setPenguncian({ nim: mhsF.nim, aspekId: aspekF.aspek.id, status: 'final', aktor: 'Andini Prameswari, M.Psi.' })
+await setPenguncian({ nim: mhsF.nim, aspekId: aspekF.aspek.id, status: 'final', aktor: 'Andini Prameswari, M.Psi.' })
 const dikunci = transkripOf(mhsF).aspekById[aspekF.aspek.id]
 console.log('Ditandai  : status', dikunci.status, '. oleh', dikunci.penguncian?.oleh)
 cek('Penandaan final berlaku di mode manual', dikunci.status === 'final')
 cek('Pencatat penguncian tersimpan', dikunci.penguncian?.oleh === 'Andini Prameswari, M.Psi.')
 
 /* Rollback nilai membuat aspek tidak lengkap lagi. */
-rollbackBatch(bF.id)
+await rollbackBatch(bF.id)
 const balikF = transkripOf(mhsF).aspekById[aspekF.aspek.id]
 console.log('Rollback  :', balikF.komponenTerisi + '/' + balikF.komponenTotal, '-> status', balikF.status)
 cek('Aspek tidak lengkap tidak bisa final walau ditandai', balikF.status === 'berjalan')
 
 CONFIG.PENGUNCIAN_ASPEK = 'otomatis'
-bersihkanPerubahan()
+await bersihkanPerubahan()
 cek('Bersihkan menghapus penandaan',
   transkripOf(mhsF).aspekById[aspekF.aspek.id].penguncian == null)
 

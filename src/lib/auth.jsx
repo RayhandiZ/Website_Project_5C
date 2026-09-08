@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { contohEmailMahasiswa, getStudentByEmail } from './mockData'
+import { contohEmailMahasiswa, getStudentByEmail } from './mockData.js'
 
 /* Autentikasi tiruan untuk tahap UI/UX — peran ditentukan dari domain email.
    Nanti tinggal diganti pemanggilan API tanpa mengubah komponen halaman. */

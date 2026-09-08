@@ -1,6 +1,6 @@
-import { CONFIG } from './config'
-import { KOMPONEN, aspekPunyaDraft, getAspek, getAspekList, getKomponenById } from './curriculum'
-import { hitungTranskrip, semesterDitutup } from './scoring'
+import { CONFIG } from './config.js'
+import { KOMPONEN, aspekPunyaDraft, getAspek, getAspekList, getKomponenById } from './curriculum.js'
+import { hitungTranskrip, semesterDitutup } from './scoring.js'
 
 /* --------------------------------------------------------------------------
    Aturan bisnis R1–R9 sebagai fungsi murni. Komponen halaman tidak boleh

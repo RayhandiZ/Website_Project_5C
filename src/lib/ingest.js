@@ -1,5 +1,5 @@
-import { getKomponenById } from './curriculum'
-import { uraiCSV } from './csv'
+import { getKomponenById } from './curriculum.js'
+import { uraiCSV } from './csv.js'
 
 /* --------------------------------------------------------------------------
    Pengenal berkas nilai mentah.

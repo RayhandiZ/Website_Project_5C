@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { getKomponenById } from './curriculum'
-import { AUDIT_LOG, PENGAJUAN_KOREKSI, getStudentByNim, resetTranskripCache } from './mockData'
+import { getKomponenById } from './curriculum.js'
+import { AUDIT_LOG, PENGAJUAN_KOREKSI, getStudentByNim, resetTranskripCache } from './mockData.js'
 
 /* --------------------------------------------------------------------------
    Penyimpanan perubahan nilai.
@@ -328,3 +328,4 @@ if (typeof window !== 'undefined' && adaPenyimpanan()) {
 export const PERINGATAN_SESI = SIMPAN_PERUBAHAN
   ? 'Perubahan tersimpan di peramban ini dan bertahan setelah halaman dimuat ulang — purwarupa ini belum terhubung ke basis data kampus.'
   : 'Perubahan tersimpan selama sesi ini saja dan hilang bila halaman dimuat ulang.'
+

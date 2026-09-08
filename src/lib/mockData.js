@@ -1,6 +1,6 @@
-import { CONFIG, subscribeConfig } from './config'
-import { getAspekList, getKomponen } from './curriculum'
-import { hitungTranskrip, hurufMutu } from './scoring'
+import { CONFIG, subscribeConfig } from './config.js'
+import { getAspekList, getKomponen } from './curriculum.js'
+import { hitungTranskrip, hurufMutu } from './scoring.js'
 
 /* --------------------------------------------------------------------------
    Data contoh tahap purwarupa. Deterministik lewat PRNG berseed supaya angka
@@ -616,3 +616,4 @@ export function kelengkapanMatriks(rows) {
   }
   return hasil
 }
+

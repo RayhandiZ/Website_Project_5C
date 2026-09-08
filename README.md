@@ -338,3 +338,4 @@ Promise, sehingga React memanggil Promise itu sebagai fungsi cleanup saat `<Navi
 | 7 | Input & Import Nilai: gerbang semester, input manual, import CSV, rollback, koreksi | selesai |
 | 8 | Kurikulum, Angkatan & Sertifikat, Log | belum |
 | 9 | Poles cetak, responsif, aksesibilitas | sebagian (cetak & reduced-motion sudah) |
+| — | Basis data PostgreSQL | ditunda — hasil kerjanya diarsipkan di `arsip/postgres/` |

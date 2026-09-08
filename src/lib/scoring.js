@@ -1,4 +1,4 @@
-import { CONFIG } from './config'
+import { CONFIG } from './config.js'
 import {
   AREA,
   CLUSTER,
@@ -7,7 +7,7 @@ import {
   getAspek,
   getAspekList,
   getKomponen,
-} from './curriculum'
+} from './curriculum.js'
 
 /* --------------------------------------------------------------------------
    Seluruh rumus penilaian tinggal di sini. Tidak ada perhitungan yang boleh

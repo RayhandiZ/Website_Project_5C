@@ -13,10 +13,15 @@
   --text-secondary: #545879;
   --text-muted: #8a8ea9;
 
-  --brand: #312e81;
-  --brand-deep: #1e1b4b;
-  --brand-ink: #4b46b8;
-  --brand-soft: #ecebfa;
+  /* Merek biru. --brand-ink bukan sekadar warna tautan: ia juga dipakai sebagai
+     warna data pada cincin nilai akhir, radar cluster, dan bar nilai akhir.
+     Karena Area A (--c1) sudah biru, nada ini sengaja dipilih jauh lebih gelap
+     supaya keduanya tidak tertukar — terukur ΔE 19,5 pada penglihatan normal
+     dan 19,0 pada simulasi buta warna. */
+  --brand: #12508f;
+  --brand-deep: #082a52;
+  --brand-ink: #104281;
+  --brand-soft: #e7effb;
   --accent: #e0a33a;
 
   /* 5C categorical slots — validated (light, surface #ffffff) */
@@ -53,10 +58,12 @@
   --text-secondary: #a9b2c9;
   --text-muted: #7b869e;
 
-  --brand: #4f46b8;
-  --brand-deep: #0f1730;
-  --brand-ink: #a5a1f0;
-  --brand-soft: #1d2145;
+  /* Pada latar gelap arahnya dibalik: --brand-ink jadi biru muda agar terbaca,
+     dan tetap dijaga jauh dari --c1 (ΔE 20,7). */
+  --brand: #14538f;
+  --brand-deep: #071a30;
+  --brand-ink: #9ec5f4;
+  --brand-soft: #12263f;
   --accent: #e8b455;
 
   /* 5C categorical slots — validated (dark, surface #131c2b) */

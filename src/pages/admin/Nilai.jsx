@@ -82,20 +82,20 @@ const MODE_SIMPAN = [
 ]
 
 /* Menerapkan pilihan status ke aspek-aspek yang tersentuh sebuah batch. */
-function terapkanStatus(batch, mode, aktor) {
+async function terapkanStatus(batch, mode, aktor) {
   const pasangan = [
     ...new Map(batch.jejak.map((j) => [j.nim + '|' + j.aspek, { nim: j.nim, aspekId: j.aspek }])).values(),
   ]
   if (mode === 'final') {
     const layak = pasangan.filter((p) => bolehTandaiFinal(getStudentByNim(p.nim), p.aspekId).boleh)
-    setPenguncianBanyak(layak, { status: 'final', aktor })
+    await setPenguncianBanyak(layak, { status: 'final', aktor })
     return { mode, dikunci: layak.length, tersentuh: pasangan.length }
   }
   if (mode === 'sementara') {
-    setPenguncianBanyak(pasangan, { status: 'sementara', aktor })
+    await setPenguncianBanyak(pasangan, { status: 'sementara', aktor })
     return { mode, ditahan: pasangan.length, tersentuh: pasangan.length }
   }
-  setPenguncianBanyak(pasangan, { status: null, aktor })
+  await setPenguncianBanyak(pasangan, { status: null, aktor })
   return { mode, tersentuh: pasangan.length }
 }
 
@@ -503,9 +503,9 @@ function InputManual({ semester, sumber, angkatan, aspekList, mahasiswa, aktor, 
   const sah = entri.filter((e) => e.sah)
   const tidakSah = entri.filter((e) => !e.sah)
 
-  function simpan() {
+  async function simpan() {
     if (!sah.length) return
-    const batch = simpanBatch({
+    const batch = await simpanBatch({
       sumber,
       semester,
       angkatanId: angkatan.id,
@@ -513,7 +513,7 @@ function InputManual({ semester, sumber, angkatan, aspekList, mahasiswa, aktor, 
       cara: 'manual',
       entri: sah.map(({ nim, komponenId, nilai }) => ({ nim, komponenId, nilai })),
     })
-    const status = terapkanStatus(batch, modeSimpan, aktor)
+    const status = await terapkanStatus(batch, modeSimpan, aktor)
     setDraf({})
     setPesan({ batch, status })
   }
@@ -748,9 +748,9 @@ function ImportCerdas({ semester, sumber, angkatan, komponenSumber, mahasiswa, a
       ? (hasilBaku?.diterima ?? []).map((r) => ({ nim: r.nim, komponenId: r.komponenId, nilai: r.nilai }))
       : (hasilMentah?.entri ?? []).map((e) => ({ nim: e.nim, komponenId: e.komponenId, nilai: e.nilai }))
 
-  function proses() {
+  async function proses() {
     if (!entriSiap.length) return
-    const batch = simpanBatch({
+    const batch = await simpanBatch({
       sumber,
       semester,
       angkatanId: angkatan.id,
@@ -758,7 +758,7 @@ function ImportCerdas({ semester, sumber, angkatan, komponenSumber, mahasiswa, a
       cara: analisa.format === 'baku' ? 'import' : 'import-mentah',
       entri: entriSiap,
     })
-    setPesan({ batch, status: terapkanStatus(batch, modeSimpan, aktor) })
+    setPesan({ batch, status: await terapkanStatus(batch, modeSimpan, aktor) })
     setAnalisa(null)
     setPeta({})
     setTeks('')
@@ -1155,7 +1155,9 @@ function Koreksi({ aktor }) {
   const [catatan, setCatatan] = useState({})
 
   const putuskan = (id, keputusan) =>
-    putuskanKoreksi(id, keputusan, { aktor, catatan: catatan[id]?.trim() || null })
+    putuskanKoreksi(id, keputusan, { aktor, catatan: catatan[id]?.trim() || null }).catch((e) =>
+      window.alert(e.message),
+    )
 
   if (!PENGAJUAN_KOREKSI.length) {
     return <EmptyState title="Belum ada pengajuan koreksi dari mahasiswa." />
@@ -1239,7 +1241,7 @@ function RiwayatBatch() {
               type="button"
               onClick={() => {
                 if (window.confirm('Hapus seluruh perubahan nilai dan kembali ke data contoh bawaan?')) {
-                  bersihkanPerubahan()
+                  Promise.resolve(bersihkanPerubahan()).catch((e) => window.alert(e.message))
                 }
               }}
               className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-[12.5px] font-bold text-ink-2 transition hover:border-[var(--critical)] hover:text-[var(--critical)]"
@@ -1266,7 +1268,7 @@ function RiwayatBatch() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => rollbackBatch(b.id)}
+                  onClick={() => rollbackBatch(b.id).catch((e) => window.alert(e.message))}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-[12.5px] font-bold text-ink-2 transition hover:border-[var(--critical)] hover:text-[var(--critical)]"
                 >
                   <IconUndo size={14} />

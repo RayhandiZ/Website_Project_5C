@@ -3,3 +3,5 @@ scripts/.smoke.cjs
 scripts/.nilai.mjs
 node_modules
 dist
+.env
+.env.local
