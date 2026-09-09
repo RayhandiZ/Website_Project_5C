@@ -263,6 +263,7 @@ function simpanKePenyimpanan() {
         koreksi: Object.fromEntries(
           PENGAJUAN_KOREKSI.filter((k) => k.keputusan).map((k) => [k.id, { status: k.status, keputusan: k.keputusan }]),
         ),
+        koreksiBaru: PENGAJUAN_KOREKSI.filter((k) => k.baru),
       }),
     )
   } catch {
@@ -291,6 +292,10 @@ export function muatDariPenyimpanan() {
   for (const p of data.penguncian ?? []) {
     PENGUNCIAN.push(p)
     NIM_KUNCI.add(p.nim)
+  }
+
+  for (const k of data.koreksiBaru ?? []) {
+    if (!PENGAJUAN_KOREKSI.some((x) => x.id === k.id)) PENGAJUAN_KOREKSI.unshift(k)
   }
 
   for (const [id, nilai] of Object.entries(data.koreksi ?? {})) {
@@ -329,3 +334,40 @@ export const PERINGATAN_SESI = SIMPAN_PERUBAHAN
   ? 'Perubahan tersimpan di peramban ini dan bertahan setelah halaman dimuat ulang — purwarupa ini belum terhubung ke basis data kampus.'
   : 'Perubahan tersimpan selama sesi ini saja dan hilang bila halaman dimuat ulang.'
 
+
+
+/* ------------------------- pengajuan koreksi mahasiswa -------------------- */
+
+/**
+ * Satu-satunya aksi tulis milik mahasiswa (R8).
+ * Pengajuan TIDAK mengubah nilai apa pun — ia hanya masuk ke antrean
+ * Kemahasiswaan untuk diputuskan.
+ */
+export function ajukanKoreksi({ student, komponenId, alasan, nilaiDiharapkan = null }) {
+  const komponen = getKomponenById(komponenId)
+  if (!komponen) throw new Error('Komponen tidak dikenal.')
+  if (!String(alasan ?? '').trim()) throw new Error('Alasan pengajuan wajib diisi.')
+
+  const pengajuan = {
+    id: 'K-' + Date.now().toString(36).toUpperCase().slice(-5),
+    nim: student.nim,
+    nama: student.name,
+    komponenId,
+    komponenLabel: komponen.label,
+    aspekId: komponen.aspekId,
+    alasan: String(alasan).trim(),
+    nilaiDiharapkan,
+    status: 'menunggu',
+    diajukan: new Date().toISOString().slice(0, 10),
+    keputusan: null,
+    baru: true,
+  }
+
+  PENGAJUAN_KOREKSI.unshift(pengajuan)
+  berubah()
+  simpanKePenyimpanan()
+  return pengajuan
+}
+
+/** Pengajuan milik seorang mahasiswa — dipakai halaman transkrip. */
+export const koreksiMilik = (nim) => PENGAJUAN_KOREKSI.filter((k) => k.nim === nim)

@@ -14,6 +14,15 @@ const SESI = { student: JSON.stringify({ role:'student', email:'a@student.umn.ac
                admin:   JSON.stringify({ role:'admin',   email:'a@umn.ac.id', name:'Y', initials:'KH' }) }
 
 const ISI = {
+  '/mahasiswa': [
+    [/Nilai akhir/, 'kartu profil menyebut nilai akhir sekali'],
+    [/Pintasan[\s\S]{0,200}Transkrip[\s\S]{0,200}Sertifikat/, 'footer punya pintasan berikon'],
+    [/Helpdesk[\s\S]{0,300}softskill@umn\.ac\.id/, 'helpdesk dan kontak tercantum'],
+    [/Akses Cepat/, 'tidak ada lagi blok tombol mati', false],
+    [/Perjalanan program[\s\S]{0,900}Perjalanan program/, 'perjalanan program tidak diulang', false],
+    [/Nilai sementara[\s\S]{0,60}\/ 100/, 'nilai akhir tidak diulang sebagai StatTile', false],
+    [/Sertifikat[\s\S]{0,60}(Siap diunduh|Belum tersedia)/, 'status sertifikat tetap terlihat'],
+  ],
   '/admin': [
     [/Perlu dikerjakan/, 'ada daftar pekerjaan yang menunggu'],
     [/(Lihat selengkapnya[\s\S]*){6}/, 'enam tautan Lihat selengkapnya ke halaman lain'],
@@ -82,12 +91,17 @@ const RUTE = [
     const teks = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
     const namaTampil = teks.includes(m.name)
     const nimTampil = teks.includes(m.nim)
-    const bukanPersona = m.id === 'DEMO-2' || !teks.includes('Rayhandi Zulmi')
+    /* Kebocoran identitas diperiksa lewat NIM, bukan nama. Nama pengembang
+       kebetulan sama dengan nama persona demo dan tercantum di baris hak cipta
+       footer, sehingga pemeriksaan berbasis nama akan salah menuduh. NIM unik
+       dan tidak pernah muncul di luar area identitas. */
+    const nimPersona = daftarUji()[0].nim
+    const bukanPersona = m.nim === nimPersona || !teks.includes(nimPersona)
     const ok = namaTampil && nimTampil && bukanPersona
     if (!ok) gagal++
     console.log(
       (ok ? 'OK     ' : 'GAGAL  ') + 'sesi ' + m.email.padEnd(36) +
-        'menampilkan ' + m.name + ' (' + m.nim + ')' + (bukanPersona ? '' : ' TAPI MASIH ADA NAMA PERSONA'),
+        'menampilkan ' + m.name + ' (' + m.nim + ')' + (bukanPersona ? '' : ' TAPI IDENTITAS PERSONA BOCOR'),
     )
   }
 

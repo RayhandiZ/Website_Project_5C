@@ -103,6 +103,25 @@ Tiga persona bawaan untuk memperagakan gating semester:
 Kasus sertifikat ada di angkatan 2024 yang sudah dikunci, lewat panel admin:
 `DEMO-LAYAK` (berhak), `DEMO-KOSONG` (satu komponen kosong), `DEMO-RENDAH` (nilai 64).
 
+## Bahasa visual: rata, bukan bertumpuk
+
+Seluruh panel memakai satu bahasa yang sama, mengikuti gaya E-Learning UMN:
+
+- **tanpa gradien** — navbar, footer, dan kepala kartu memakai warna padat;
+  kartu identitas hanya diberi garis merek setebal 1px di atasnya;
+- **bayangan nyaris tidak ada** — kartu cukup dibatasi garis rambut;
+- **menu aktif diisi penuh warna merek dengan teks putih**, bukan latar samar —
+  supaya halaman yang sedang dibuka terbaca sekali lihat;
+- **setiap kendali harus menuju ke suatu tempat.** Tombol pesan di navbar dibuang
+  karena fiturnya belum ada, lonceng hanya muncul bila memang ada yang menunggu
+  dan menjadi tautan ke halaman yang menanganinya, blok "Akses Cepat" di footer
+  dibuang karena keempat tombolnya mati, dan sakelar tema tidak lagi muncul dua
+  kali. Footer kemudian dibangun ulang mengikuti susunan E-Learning UMN —
+  pintasan berikon, helpdesk, kontak, identitas unit — tetapi **setiap pintasan
+  menunjuk ke halaman yang benar-benar ada**, dan berbeda antara panel mahasiswa
+  (Transkrip, Peta Perjalanan, Riwayat, Sertifikat) dan panel Kemahasiswaan
+  (Data Mahasiswa, Input Nilai, Program Studi, Sertifikat).
+
 ## Ringkasan admin sengaja dibuat tenang
 
 Penggunanya dosen dan staf dengan rentang usia dan kebiasaan digital yang lebar, jadi halaman
@@ -296,6 +315,25 @@ untuk data nilai**, dengan pembatasan:
 
 Setel `SIMPAN_PERUBAHAN = false` di `src/lib/store.js` untuk kembali ke perilaku murni di
 memori.
+
+## Panel mahasiswa: satu fakta, satu tempat
+
+Nilai akhir sempat muncul tiga kali (kartu profil, kartu sapaan, dan StatTile)
+dan perjalanan program dua kali. Sekarang masing-masing punya satu rumah:
+
+| Fakta | Tempatnya |
+|---|---|
+| Siapa saya + nilai akhir ringkas | kartu profil di kolom kiri |
+| Nilai akhir beserta penjelasannya | kartu sapaan di Ringkasan |
+| Perjalanan tiga semester | kartu Perjalanan program di Ringkasan |
+| Status sertifikat | satu baris bertaut di kartu sapaan |
+
+Halaman Ringkasan mahasiswa turun dari 29.802 menjadi 21.186 karakter.
+
+Tombol **Ajukan koreksi nilai** yang sebelumnya mati kini membuka formulir
+sungguhan: mahasiswa memilih komponen, menuliskan alasan, dan pengajuannya masuk
+ke antrean Kemahasiswaan. Ini tetap satu-satunya aksi tulis milik mahasiswa (R8)
+— pengajuan tidak mengubah nilai apa pun.
 
 ## Rambatan nilai ke dashboard mahasiswa
 

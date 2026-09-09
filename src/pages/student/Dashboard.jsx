@@ -7,20 +7,16 @@ import {
   HurufBadge,
   ScoreBar,
   ScoreRing,
-  StatTile,
   Terkunci,
 } from '../../components/Ui'
 import {
   IconAlert,
   IconCertificate,
   IconChevronRight,
-  IconClock,
-  IconGauge,
   IconLock,
   IconTable,
   IconTarget,
 } from '../../components/Icons'
-import { CONFIG } from '../../lib/config'
 import { getArea } from '../../lib/curriculum'
 import { kelayakanSertifikat, labelNilaiAkhir } from '../../lib/rules'
 import { transkripOf } from '../../lib/mockData'
@@ -64,6 +60,21 @@ export default function Dashboard() {
                 <IconChevronRight size={16} />
               </Link>
             </div>
+
+            <Link
+              to="/mahasiswa/sertifikat"
+              className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-4 text-[13.5px] transition hover:text-brand-ink"
+            >
+              <IconCertificate size={17} className="shrink-0 text-ink-3" />
+              <span className="text-ink-2">Sertifikat</span>
+              <span className="font-bold text-ink">
+                {sertifikat.layak ? 'Siap diunduh' : 'Belum tersedia'}
+              </span>
+              <span className="text-ink-3">
+                {sertifikat.layak ? '' : '\u00b7 ' + sertifikat.gagal.length + ' syarat belum terpenuhi'}
+              </span>
+              <IconChevronRight size={15} className="ml-auto shrink-0 text-ink-3" />
+            </Link>
           </div>
         </div>
       </Card>
@@ -102,38 +113,6 @@ export default function Dashboard() {
           })}
         </ol>
       </Card>
-
-      {/* ringkasan angka */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile
-          label="Nilai sementara"
-          value={t.akhir.nilai ?? '—'}
-          unit="/ 100"
-          icon={IconGauge}
-          hint={t.akhir.basis}
-        />
-        <StatTile
-          label="Aspek dinilai"
-          value={t.akhir.aspekDinilai}
-          unit={'/ ' + t.akhir.aspekTotal}
-          icon={IconTarget}
-          hint={t.aspek.filter((a) => a.terkunci).length + ' aspek belum dibuka'}
-        />
-        <StatTile
-          label="Semester aktif"
-          value={student.semesterAktif}
-          unit={'dari ' + CONFIG.TOTAL_SEMESTER_PROGRAM}
-          icon={IconClock}
-          hint={'Angkatan ' + student.angkatanLabel}
-        />
-        <StatTile
-          label="Status sertifikat"
-          value={sertifikat.layak ? 'Tersedia' : 'Belum'}
-          icon={IconCertificate}
-          tone={sertifikat.layak ? 'good' : 'warning'}
-          hint={sertifikat.layak ? 'Siap diunduh' : sertifikat.gagal.length + ' syarat belum terpenuhi'}
-        />
-      </div>
 
       {/* cluster */}
       <Card>

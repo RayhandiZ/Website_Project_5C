@@ -146,13 +146,13 @@ export default function Nilai() {
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* <div>
         <h1 className="text-[22px] font-extrabold tracking-tight text-ink">Input &amp; Import Nilai</h1>
         <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-ink-2">
           Nilai hanya boleh dimasukkan oleh unit penilai. Tentukan dulu semester yang akan diisi — komponen
           asesmen yang tersedia berbeda di tiap semester.
         </p>
-      </div>
+      </div> */}
 
       {/* ---------------------- langkah 1: pilih semester ---------------------- */}
       <Card>

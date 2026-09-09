@@ -197,13 +197,28 @@ export const IconBook = (p) => (
 )
 
 export const IconLogo = ({ size = 26, ...rest }) => (
-  <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true" {...rest}>
-    <rect x="1.5" y="1.5" width="29" height="29" rx="9" fill="none" stroke="currentColor" strokeWidth="2" />
-    <circle cx="16" cy="8.6" r="2.5" fill="currentColor" />
-    <circle cx="22.6" cy="13.4" r="2.5" fill="currentColor" opacity=".85" />
-    <circle cx="20.1" cy="21.2" r="2.5" fill="currentColor" opacity=".7" />
-    <circle cx="11.9" cy="21.2" r="2.5" fill="currentColor" opacity=".55" />
-    <circle cx="9.4" cy="13.4" r="2.5" fill="currentColor" opacity=".4" />
+  /* Piringan biru yang "melarut" menjadi kotak-kotak di sisi kiri atas, dengan
+     cincin putih mengelilinginya.
+
+     Warnanya sengaja TETAP, tidak mengikuti currentColor. Alasannya: warna
+     piringan hampir sama dengan biru navbar, jadi tanpa cincin putih lambangnya
+     akan lesap ke latar. Cincin itulah yang memisahkannya di navbar, sekaligus
+     tidak mengganggu saat lambang berdiri di atas kartu putih.
+
+     Kotak-kotaknya kini putih pejal, bukan lubang tembus — seluruhnya berada di
+     dalam r=42 sehingga tidak pernah menyentuh cincin. */
+  <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden="true" {...rest}>
+    <circle cx="50" cy="50" r="45" fill="#0b5ca0" />
+    <circle cx="50" cy="50" r="46.5" fill="none" stroke="#ffffff" strokeWidth="4" />
+    <rect x="19" y="23" width="10" height="10" fill="#ffffff" />
+    <rect x="45" y="14" width="10" height="10" fill="#ffffff" />
+    <rect x="30" y="25" width="9" height="9" fill="#ffffff" />
+    <rect x="36" y="36" width="9" height="9" fill="#ffffff" />
+    <rect x="47" y="40" width="9" height="9" fill="#ffffff" />
+    <rect x="19" y="42" width="10" height="10" fill="#ffffff" />
+    <rect x="32" y="50" width="9" height="9" fill="#ffffff" />
+    <rect x="24" y="61" width="9" height="9" fill="#ffffff" />
+    <rect x="33" y="73" width="9" height="9" fill="#ffffff" />
   </svg>
 )
 
@@ -269,5 +284,18 @@ export const IconInfo = (p) => (
 export const IconFilter = (p) => (
   <Svg {...p}>
     <path d="M4.2 5.6h15.6l-6 7v5.4l-3.6 1.8v-7.2z" />
+  </Svg>
+)
+
+export const IconPhone = (p) => (
+  <Svg {...p}>
+    <path d="M8.2 4.2H5.4a1.6 1.6 0 0 0-1.6 1.7c.3 5.9 5 10.6 10.9 10.9a1.6 1.6 0 0 0 1.7-1.6v-2.8l-3.4-1.2-1.5 1.8a12 12 0 0 1-4.8-4.8l1.8-1.5z" />
+  </Svg>
+)
+
+export const IconMail = (p) => (
+  <Svg {...p}>
+    <rect x="3.4" y="5.4" width="17.2" height="13.2" rx="2.2" />
+    <path d="m3.8 7 8.2 5.6L20.2 7" />
   </Svg>
 )

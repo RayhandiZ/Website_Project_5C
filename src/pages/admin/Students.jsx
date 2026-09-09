@@ -4,7 +4,9 @@ import FilterBar, { DEFAULT_FILTER } from '../../components/FilterBar'
 import { Badge, Card, CatatanKaki, EmptyState, HurufBadge, ScoreBar, Select } from '../../components/Ui'
 import { IconChevronDown, IconChevronRight, IconDownload } from '../../components/Icons'
 import { CONFIG } from '../../lib/config'
+import { susunCSV, unduhBerkas } from '../../lib/csv'
 import { kelayakanSertifikat } from '../../lib/rules'
+import { hurufMutu } from '../../lib/scoring'
 import { filterStudents, ringkas, transkripOf } from '../../lib/mockData'
 import { useStore } from '../../lib/store'
 
@@ -72,6 +74,22 @@ export default function Students() {
   const halaman = Math.max(1, Math.ceil(urut.length / PAGE_SIZE))
   const tampil = urut.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
+  /* Tombol ini sebelumnya tidak menuju ke mana pun. Isinya persis tabel yang
+     sedang tampil, mengikuti filter dan urutan yang dipilih. */
+  function eksporCSV() {
+    unduhBerkas(
+      'data-mahasiswa-' + new Date().toISOString().slice(0, 10) + '.csv',
+      susunCSV(
+        ['NIM', 'Nama', 'Email', 'Program studi', 'Angkatan', 'Semester', 'Nilai', 'Huruf', 'Aspek dinilai', 'Sertifikat'],
+        urut.map((x) => [
+          x.s.nim, x.s.name, x.s.email, x.s.program, x.s.angkatanLabel,
+          x.s.semesterAktif, x.nilai ?? '', hurufMutu(x.nilai)?.huruf ?? '',
+          x.dinilai + '/' + x.total, x.layak ? 'Berhak' : 'Belum',
+        ]),
+      ),
+    )
+  }
+
   const toggle = (key) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }))
 
@@ -84,7 +102,7 @@ export default function Students() {
             {rows.length.toLocaleString('id-ID')} mahasiswa · rata-rata {r.rata ?? '—'} · {r.final} transkrip final
           </p>
         </div>
-        <button type="button" className="btn-ghost">
+        <button type="button" className="btn-ghost" onClick={eksporCSV} disabled={!urut.length}>
           <IconDownload size={17} />
           Ekspor CSV
         </button>

@@ -40,7 +40,7 @@ export default function Login() {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.15fr_minmax(420px,540px)]">
       {/* Panel kiri — identitas sistem */}
-      <aside className="relative hidden overflow-hidden bg-[linear-gradient(150deg,var(--brand-deep)_10%,var(--brand)_95%)] p-12 text-white lg:flex lg:flex-col">
+      <aside className="relative hidden overflow-hidden bg-brand-deep p-12 text-white lg:flex lg:flex-col">
         <svg className="pointer-events-none absolute -right-24 -top-24 h-[520px] w-[520px] opacity-[.09]" viewBox="0 0 200 200" aria-hidden="true">
           <circle cx="100" cy="100" r="98" fill="none" stroke="white" strokeWidth="1.5" />
           <circle cx="100" cy="100" r="72" fill="none" stroke="white" strokeWidth="1.5" />

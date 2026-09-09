@@ -199,13 +199,13 @@ export default function Overview() {
   return (
     <div className="space-y-8">
       {/* --------------------------------- kepala -------------------------------- */}
-      <header>
+      {/* <header>
         <h1 className="text-[30px] font-extrabold leading-tight tracking-tight text-ink">Ringkasan</h1>
         <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-ink-2">
           {admin.name} · periode {labelPeriode(PERIODE_AKTIF)}. Halaman ini menampilkan keadaan
           menyeluruh dan pekerjaan yang menunggu. Rincian tiap bagian ada di halaman terpisah.
         </p>
-      </header>
+      </header> */}
 
       {/* --------------------------------- angka --------------------------------- */}
       <section className="grid gap-5 md:grid-cols-3">

@@ -3,6 +3,7 @@ import FilterBar, { DEFAULT_FILTER } from '../../components/FilterBar'
 import { Card, CatatanKaki, EmptyState, HurufBadge, ScoreBar, StatTile, Tabs } from '../../components/Ui'
 import { IconBuilding, IconDownload, IconGauge, IconUsers } from '../../components/Icons'
 import { FACULTIES, byAngkatan, byProgram, filterStudents, ringkas } from '../../lib/mockData'
+import { susunCSV, unduhBerkas } from '../../lib/csv'
 import { useStore } from '../../lib/store'
 
 export default function Programs() {
@@ -42,6 +43,18 @@ export default function Programs() {
             ...a,
           }))
 
+  /* Sebelumnya tombol ini tidak berbuat apa-apa. Isinya tabel perbandingan
+     yang sedang tampil, mengikuti tab dan filter yang aktif. */
+  function unduhRekap() {
+    unduhBerkas(
+      'rekap-' + tampilan + '-' + new Date().toISOString().slice(0, 10) + '.csv',
+      susunCSV(
+        ['Unit', 'Keterangan', 'Mahasiswa', 'Transkrip final', 'Rata-rata'],
+        daftar.map((d) => [d.judul, d.sub, d.total, d.final, d.rata ?? '']),
+      ),
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -51,7 +64,7 @@ export default function Programs() {
             Bandingkan capaian CPMK antar program studi, fakultas, dan angkatan.
           </p>
         </div>
-        <button type="button" className="btn-ghost">
+        <button type="button" className="btn-ghost" onClick={unduhRekap} disabled={!daftar.length}>
           <IconDownload size={17} />
           Unduh rekap
         </button>

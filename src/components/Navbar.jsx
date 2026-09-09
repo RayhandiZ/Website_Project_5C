@@ -3,9 +3,12 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
 import { Avatar } from './Ui'
-import { IconBell, IconChat, IconChevronDown, IconLogo, IconLogout, IconMoon, IconSun } from './Icons'
+import { IconBell, IconChevronDown, IconLogo, IconLogout, IconMoon, IconSun } from './Icons'
 
-export default function Navbar({ links = [], notifications = 0 }) {
+/* Setiap kendali di sini harus menuju ke suatu tempat. Tombol pesan dibuang
+   karena fitur pesan memang belum ada, dan lonceng hanya muncul bila memang ada
+   yang menunggu — sekaligus menjadi tautan ke halaman yang menanganinya. */
+export default function Navbar({ links = [], notifications = 0, notifKe = null }) {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
@@ -27,12 +30,12 @@ export default function Navbar({ links = [], notifications = 0 }) {
   }, [open])
 
   return (
-    <header className="sticky top-0 z-40 bg-[linear-gradient(100deg,var(--brand-deep),var(--brand))] text-white">
+    <header className="sticky top-0 z-40 bg-brand text-white">
       <div className="mx-auto flex h-[64px] max-w-shell items-center gap-3 px-4 sm:px-6">
         <NavLink to="/" className="flex items-center gap-2.5 text-white">
-          <IconLogo size={28} />
+          <IconLogo size={40} />
           <span className="hidden text-[15px] font-extrabold tracking-tight sm:block">
-            SOFTSKILL <span className="text-[var(--accent)]">5C</span>
+            UMN <span className="text-[var(--accent)]">SOFTSKILL</span>
           </span>
         </NavLink>
 
@@ -53,25 +56,18 @@ export default function Navbar({ links = [], notifications = 0 }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            className="relative grid h-9 w-9 place-items-center rounded-lg text-white/80 transition hover:bg-white/10 hover:text-white"
-            aria-label={'Notifikasi (' + notifications + ' baru)'}
-          >
-            <IconBell size={19} />
-            {notifications > 0 ? (
+          {notifications > 0 && notifKe ? (
+            <NavLink
+              to={notifKe}
+              className="relative grid h-9 w-9 place-items-center rounded-lg text-white/80 transition hover:bg-white/10 hover:text-white"
+              aria-label={notifications + ' hal menunggu ditangani'}
+            >
+              <IconBell size={19} />
               <span className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-extrabold text-[#2b1c00]">
                 {notifications}
               </span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            className="hidden h-9 w-9 place-items-center rounded-lg text-white/80 transition hover:bg-white/10 hover:text-white sm:grid"
-            aria-label="Pesan"
-          >
-            <IconChat size={19} />
-          </button>
+            </NavLink>
+          ) : null}
 
           <span className="mx-1.5 hidden h-6 w-px bg-white/20 sm:block" />
 
@@ -97,19 +93,11 @@ export default function Navbar({ links = [], notifications = 0 }) {
                 </div>
                 <button
                   type="button"
-                  onClick={toggle}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-ink-2 transition hover:bg-surface-2"
-                >
-                  {theme === 'dark' ? <IconSun size={17} /> : <IconMoon size={17} />}
-                  Mode {theme === 'dark' ? 'terang' : 'gelap'}
-                </button>
-                <button
-                  type="button"
                   onClick={() => {
                     logout()
                     navigate('/masuk', { replace: true })
                   }}
-                  className="flex w-full items-center gap-2.5 border-t border-line px-4 py-2.5 text-left text-sm font-semibold text-[var(--critical)] transition hover:bg-surface-2"
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-[var(--critical)] transition hover:bg-surface-2"
                 >
                   <IconLogout size={17} />
                   Keluar

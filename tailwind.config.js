@@ -35,7 +35,9 @@ export default {
       },
       borderRadius: { xl2: '1rem' },
       boxShadow: {
-        card: '0 1px 2px rgba(16,20,50,.04), 0 8px 24px -12px rgba(16,20,50,.12)',
+        // Kartu cukup dibatasi garis rambut; bayangannya hanya setipis untuk
+        // memisahkan dari latar, bukan untuk mengangkatnya.
+        card: '0 1px 2px rgba(16, 20, 50, .04)',
         pop: '0 12px 32px -8px rgba(16,20,50,.28)',
       },
       maxWidth: { shell: '1240px' },

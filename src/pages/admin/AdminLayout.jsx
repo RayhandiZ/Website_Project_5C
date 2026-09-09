@@ -15,6 +15,14 @@ import {
 import { PERIODE_AKTIF, PENGAJUAN_KOREKSI, labelPeriode } from '../../lib/mockData'
 import { useStore } from '../../lib/store'
 
+/* Pintasan footer menunjuk ke halaman yang memang ada, bukan tautan hiasan. */
+const PINTASAN = [
+  { ke: '/admin/mahasiswa', label: 'Data Mahasiswa', icon: IconUsers },
+  { ke: '/admin/nilai', label: 'Input Nilai', icon: IconUpload },
+  { ke: '/admin/program-studi', label: 'Program Studi', icon: IconBuilding },
+  { ke: '/admin/angkatan', label: 'Sertifikat', icon: IconCertificate },
+]
+
 const NAV = [
   { to: '/admin', label: 'Ringkasan', end: true },
   { to: '/admin/mahasiswa', label: 'Mahasiswa' },
@@ -40,20 +48,26 @@ export default function AdminLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar links={NAV} notifications={koreksi} />
+      <Navbar links={NAV} notifications={koreksi} notifKe="/admin/nilai" />
 
       <main className="mx-auto w-full max-w-shell flex-1 px-4 py-7 sm:px-6">
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="space-y-5 lg:sticky lg:top-[84px] lg:self-start print:hidden">
+            {/* Teks gelap di atas putih, bukan teks putih kecil di atas biru —
+                yang kedua paling sulit dibaca, dan penggunanya dosen dengan
+                rentang usia lebar. Angka ringkasan tidak diulang di sini;
+                tempatnya di halaman Ringkasan, dan pekerjaan yang menunggu
+                sudah ditandai lencana pada menu. */}
             <div className="card overflow-hidden">
-              <div className="bg-[linear-gradient(100deg,var(--brand-deep),var(--brand))] px-5 py-5 text-white">
-                <p className="text-[11px] font-bold uppercase tracking-[.1em] text-white/60">Unit pengelola</p>
-                <h1 className="mt-1.5 text-[15px] font-extrabold leading-snug">{admin.name}</h1>
-                <p className="mt-1 text-[12.5px] text-white/65">{admin.officer}</p>
-                <p className="mt-3 text-[12px] text-white/55">Periode {labelPeriode(PERIODE_AKTIF)}</p>
+              <div className="h-1 bg-brand" />
+              <div className="px-5 py-5">
+                <p className="text-[13px] text-ink-2">Unit pengelola</p>
+                <h1 className="mt-1 text-[16px] font-extrabold leading-snug text-ink">{admin.name}</h1>
+                <p className="mt-1.5 text-[13.5px] text-ink-2">{admin.officer}</p>
+                <p className="mt-3 border-t border-line pt-3 text-[13px] text-ink-2">
+                  Periode {labelPeriode(PERIODE_AKTIF)}
+                </p>
               </div>
-              {/* Angka ringkasan sengaja tidak diulang di sini — tempatnya di halaman
-                  Ringkasan. Pekerjaan yang menunggu sudah ditandai lencana pada menu. */}
             </div>
 
             <SideMenu items={menu} />
@@ -65,7 +79,7 @@ export default function AdminLayout() {
         </div>
       </main>
 
-      <Footer />
+      <Footer pintasan={PINTASAN} />
     </div>
   )
 }

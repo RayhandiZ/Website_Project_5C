@@ -14,7 +14,7 @@ import { CATATAN_BOBOT_SEMENTARA, CONFIG } from '../../lib/config'
 import { SUMBER, getArea, getCluster, getIndikator, getKomponen } from '../../lib/curriculum'
 import { labelNilaiAkhir, statusDokumenTranskrip } from '../../lib/rules'
 import { PERIODE_AKTIF, labelPeriode, transkripOf } from '../../lib/mockData'
-import { useStore } from '../../lib/store'
+import { ajukanKoreksi, koreksiMilik, useStore } from '../../lib/store'
 
 const STATUS_LABEL = {
   terkunci: { teks: 'Terkunci', tone: 'neutral' },
@@ -33,6 +33,8 @@ export default function Transkrip({ student }) {
   const dokumen = statusDokumenTranskrip(student)
   const label = labelNilaiAkhir(t.akhir)
   const [terbuka, setTerbuka] = useState(null)
+  const [formKoreksi, setFormKoreksi] = useState(false)
+  const milikSaya = koreksiMilik(student.nim)
 
   const clusterRows = Object.values(t.cluster)
 
@@ -259,11 +261,31 @@ export default function Transkrip({ student }) {
               bersama dosen atau unit yang memberi nilai.
             </p>
           </div>
-          <button type="button" className="btn-primary">
+          <button type="button" className="btn-primary" onClick={() => setFormKoreksi((v) => !v)}>
             <IconPencil size={17} />
-            Ajukan koreksi nilai
+            {formKoreksi ? 'Tutup formulir' : 'Ajukan koreksi nilai'}
           </button>
         </div>
+
+        {formKoreksi ? <FormKoreksi student={student} transkrip={t} onSelesai={() => setFormKoreksi(false)} /> : null}
+
+        {milikSaya.length ? (
+          <ul className="mt-5 space-y-2 border-t border-line pt-4">
+            <li className="text-[12px] font-semibold text-ink-3">Pengajuan kamu</li>
+            {milikSaya.map((k) => (
+              <li key={k.id} className="flex flex-wrap items-center gap-2.5 text-[13px]">
+                <Badge tone={k.status === 'disetujui' ? 'good' : k.status === 'ditolak' ? 'critical' : 'warning'}>
+                  {k.status === 'menunggu' ? 'Menunggu' : k.status === 'disetujui' ? 'Disetujui' : 'Ditolak'}
+                </Badge>
+                <span className="text-ink">{k.komponenLabel}</span>
+                <span className="text-ink-3">diajukan {k.diajukan}</span>
+                {k.keputusan?.catatan ? (
+                  <span className="w-full text-[12.5px] text-ink-2">{k.keputusan.catatan}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {dokumen.catatan ? <CatatanKaki>{dokumen.catatan}</CatatanKaki> : null}
       </Card>
     </div>
@@ -365,5 +387,77 @@ function BarisRincian({ aspek }) {
         )}
       </td>
     </tr>
+  )
+}
+
+
+/* ------------------------- formulir pengajuan koreksi --------------------- */
+
+/* Satu-satunya aksi tulis milik mahasiswa. Pengajuan tidak mengubah nilai —
+   ia masuk ke antrean Kemahasiswaan untuk diputuskan. */
+function FormKoreksi({ student, transkrip, onSelesai }) {
+  const terbuka = transkrip.aspek.filter((a) => !a.terkunci)
+  const pilihan = terbuka.flatMap((a) =>
+    a.komponen.map((k) => ({ id: k.id, label: a.aspek.kode + ' — ' + k.label, terisi: k.terisi, nilai: k.nilai })),
+  )
+
+  const [komponenId, setKomponenId] = useState(pilihan[0]?.id ?? '')
+  const [alasan, setAlasan] = useState('')
+  const [galat, setGalat] = useState('')
+
+  function kirim(e) {
+    e.preventDefault()
+    try {
+      ajukanKoreksi({ student, komponenId, alasan })
+      onSelesai()
+    } catch (err) {
+      setGalat(err.message)
+    }
+  }
+
+  if (!pilihan.length) {
+    return (
+      <p className="mt-4 border-t border-line pt-4 text-[13.5px] text-ink-2">
+        Belum ada komponen asesmen yang bisa dikoreksi karena semesternya belum dibuka.
+      </p>
+    )
+  }
+
+  return (
+    <form onSubmit={kirim} className="mt-5 grid gap-4 border-t border-line pt-5 sm:grid-cols-2">
+      <label className="sm:col-span-2">
+        <span className="mb-1.5 block text-[13px] font-semibold text-ink">Komponen yang dipersoalkan</span>
+        <select className="field" value={komponenId} onChange={(e) => setKomponenId(e.target.value)}>
+          {pilihan.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.label} {k.terisi ? '(nilai ' + k.nilai + ')' : '(belum dinilai)'}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="sm:col-span-2">
+        <span className="mb-1.5 block text-[13px] font-semibold text-ink">Alasan</span>
+        <textarea
+          className="field"
+          rows={3}
+          value={alasan}
+          onChange={(e) => setAlasan(e.target.value)}
+          placeholder="Jelaskan apa yang menurutmu keliru, dan bukti apa yang kamu punya."
+          required
+        />
+      </label>
+
+      {galat ? <p className="text-[13px] font-semibold text-[var(--critical)] sm:col-span-2">{galat}</p> : null}
+
+      <div className="flex flex-wrap gap-2.5 sm:col-span-2">
+        <button type="submit" className="btn-primary" disabled={!alasan.trim()}>
+          Kirim pengajuan
+        </button>
+        <button type="button" className="btn-ghost" onClick={onSelesai}>
+          Batal
+        </button>
+      </div>
+    </form>
   )
 }
