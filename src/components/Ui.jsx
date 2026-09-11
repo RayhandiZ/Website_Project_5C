@@ -269,7 +269,23 @@ export function Tabs({ items, value, onChange }) {
   )
 }
 
-export function Avatar({ initials, size = 40, tone = 'brand' }) {
+/**
+ * Avatar pengguna. Bila ada foto tersimpan, foto itu yang dipakai; kalau tidak,
+ * kembali ke inisial nama. Satu komponen untuk dua keadaan supaya ukuran dan
+ * bentuk bulatnya tidak pernah berbeda antara navbar, kartu samping, dan
+ * halaman profil.
+ */
+export function Avatar({ initials, size = 40, tone = 'brand', src = null, alt = '' }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
   return (
     <span
       className={

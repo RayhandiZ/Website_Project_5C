@@ -10,7 +10,8 @@
     "verify": "node scripts/verify.cjs",
     "smoke": "node scripts/smoke.run.cjs",
     "assert": "node scripts/assert.run.cjs",
-    "test:nilai": "node scripts/nilai.cjs"
+    "test:nilai": "node scripts/nilai.cjs",
+    "test:profil": "node scripts/profil-test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

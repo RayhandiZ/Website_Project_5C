@@ -199,13 +199,9 @@ export default function Overview() {
   return (
     <div className="space-y-8">
       {/* --------------------------------- kepala -------------------------------- */}
-      {/* <header>
-        <h1 className="text-[30px] font-extrabold leading-tight tracking-tight text-ink">Ringkasan</h1>
-        <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-ink-2">
-          {admin.name} · periode {labelPeriode(PERIODE_AKTIF)}. Halaman ini menampilkan keadaan
-          menyeluruh dan pekerjaan yang menunggu. Rincian tiap bagian ada di halaman terpisah.
-        </p>
-      </header> */}
+      <header>
+        <h1 className="text-[25px] font-extrabold leading-tight tracking-tight text-ink">Overview</h1>
+      </header>
 
       {/* --------------------------------- angka --------------------------------- */}
       <section className="grid gap-5 md:grid-cols-3">
@@ -214,7 +210,7 @@ export default function Overview() {
           nilai={angka.total.toLocaleString('id-ID')}
           persen={persenLengkap}
           persenLabel="Nilai yang sudah masuk"
-          keterangan="Tersebar di empat fakultas, angkatan 2024 sampai 2026."
+          // keterangan="Tersebar di empat fakultas, angkatan 2024 sampai 2026."
         />
         <Angka
           judul="Rata-rata nilai softskill"
@@ -222,7 +218,7 @@ export default function Overview() {
           satuan="dari 100"
           persen={bagi(angka.diAtasAmbang)}
           persenLabel={'Di atas batas ' + CONFIG.AMBANG_SERTIFIKAT}
-          keterangan={'Batas kelulusan pembinaan adalah ' + CONFIG.AMBANG_SERTIFIKAT + '.'}
+          // keterangan={'Batas kelulusan pembinaan adalah ' + CONFIG.AMBANG_SERTIFIKAT + '.'}
         />
         <Angka
           judul="Nilai sudah final"
@@ -230,7 +226,7 @@ export default function Overview() {
           satuan={'dari ' + angka.total.toLocaleString('id-ID')}
           persen={bagi(angka.final)}
           persenLabel="Sudah dikunci"
-          keterangan="Mahasiswa yang seluruh sepuluh aspeknya sudah dinilai dan dikunci."
+          // keterangan="Mahasiswa yang seluruh sepuluh aspeknya sudah dinilai dan dikunci."
         />
       </section>
 
@@ -241,7 +237,7 @@ export default function Overview() {
 
       {/* ---------------------------- perlu dikerjakan --------------------------- */}
       <section>
-        <h2 className="mb-3 text-[20px] font-extrabold tracking-tight text-ink">Perlu dikerjakan</h2>
+        <h2 className="mb-3 text-[25px] font-extrabold tracking-tight text-ink">Requires Review</h2>
         <Card className="overflow-hidden">
           {tugas.length ? (
             <ul>
@@ -259,7 +255,7 @@ export default function Overview() {
 
       {/* ------------------------------ halaman lain ----------------------------- */}
       <section>
-        <h2 className="mb-3 text-[20px] font-extrabold tracking-tight text-ink">Halaman lain</h2>
+        <h2 className="mb-3 text-[25px] font-extrabold tracking-tight text-ink">More Pages</h2>
         <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           <Pintu
             ke="/admin/nilai"
@@ -299,11 +295,6 @@ export default function Overview() {
           />
         </ul>
       </section>
-
-      <p className="max-w-2xl text-[14px] leading-relaxed text-ink-3">
-        Angka rata-rata masih memakai bobot sementara yang belum ditetapkan Biro Kemahasiswaan,
-        sehingga dapat berubah bila bobotnya nanti disesuaikan.
-      </p>
     </div>
   )
 }

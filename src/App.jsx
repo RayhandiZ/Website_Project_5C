@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { RequireRole, useAuth } from './lib/auth'
 
 import Login from './pages/Login'
+import Profil from './pages/Profil'
 
 import StudentLayout from './pages/student/StudentLayout'
 import Ringkasan from './pages/student/Dashboard'
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="peta" element={<Peta />} />
           <Route path="riwayat" element={<Riwayat />} />
           <Route path="sertifikat" element={<Sertifikat />} />
+          <Route path="profil" element={<Profil />} />
         </Route>
 
         <Route
@@ -76,6 +78,7 @@ export default function App() {
           <Route path="angkatan" element={<Angkatan />} />
           <Route path="program-studi" element={<Programs />} />
           <Route path="log" element={<Log />} />
+          <Route path="profil" element={<Profil />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

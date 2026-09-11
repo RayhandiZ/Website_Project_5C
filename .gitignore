@@ -1,5 +1,6 @@
 scripts/.verify.mjs
-scripts/.smoke.cjs
+# bundel sementara hasil scripts/bundle.cjs
+scripts/.*.cjs
 scripts/.nilai.mjs
 node_modules
 dist

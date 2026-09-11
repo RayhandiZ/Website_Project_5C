@@ -155,6 +155,12 @@ export const IconCheck = (p) => (
   </Svg>
 )
 
+export const IconMenu = (p) => (
+  <Svg {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Svg>
+)
+
 export const IconX = (p) => (
   <Svg {...p}>
     <path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6" />

@@ -1,37 +1,50 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useTheme } from '../lib/theme'
-import { Avatar } from './Ui'
-import { IconBell, IconChevronDown, IconLogo, IconLogout, IconMoon, IconSun } from './Icons'
+import Laci from './Laci'
+import MenuAkun from './MenuAkun'
+import { IconBell, IconLogo, IconMenu, IconMoon, IconSun } from './Icons'
 
-/* Setiap kendali di sini harus menuju ke suatu tempat. Tombol pesan dibuang
+/* Bilah atas panel Kemahasiswaan. Panel mahasiswa memakai kerangka sendiri
+   (sidebar + bilah terang) — lihat StudentLayout.
+
+   Setiap kendali di sini harus menuju ke suatu tempat. Tombol pesan dibuang
    karena fitur pesan memang belum ada, dan lonceng hanya muncul bila memang ada
-   yang menunggu — sekaligus menjadi tautan ke halaman yang menanganinya. */
-export default function Navbar({ links = [], notifications = 0, notifKe = null }) {
+   yang menunggu — sekaligus menjadi tautan ke halaman yang menanganinya.
+
+   Di bawah 768px tautan navigasi pindah ke laci: berjejer mendatar, tiga tautan
+   sudah cukup untuk memotong judulnya di tengah kata pada layar 390px, dan
+   menggulirkannya ke samping menyembunyikan tautan terakhir tanpa petunjuk apa
+   pun bahwa ia ada.
+
+   Fotonya DITERIMA dari layout, bukan dicari sendiri: yang tahu persis siapa
+   pemilik sesi adalah layout, dan dua tempat yang menyusun kunci akun sendiri-
+   sendiri bisa berbeda untuk orang yang sama. */
+export default function Navbar({ links = [], notifications = 0, notifKe = null, foto = null }) {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
-  const menuRef = useRef(null)
+  const [laci, setLaci] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
-    }
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  const profilKe = user?.role === 'admin' ? '/admin/profil' : '/mahasiswa/profil'
 
   return (
     <header className="sticky top-0 z-40 bg-brand text-white">
-      <div className="mx-auto flex h-[64px] max-w-shell items-center gap-3 px-4 sm:px-6">
+      {/* Bilah ini sengaja TIDAK ikut max-w-shell seperti isi halaman: sebagai
+          bilah tempel yang membentang penuh, kedua ujungnya memang menempel ke
+          tepi. Sisa px-4/px-6 hanya jarak aman agar tidak menyentuh bingkai. */}
+      <div className="flex h-[64px] w-full items-center gap-3 px-4 sm:px-6">
+        <button
+          type="button"
+          onClick={() => setLaci(true)}
+          aria-label="Buka menu navigasi"
+          aria-expanded={laci}
+          className="-ml-1 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white transition hover:bg-white/10 md:hidden"
+        >
+          <IconMenu size={23} />
+        </button>
+
         <NavLink to="/" className="flex items-center gap-2.5 text-white">
           <IconLogo size={40} />
           <span className="hidden text-[15px] font-extrabold tracking-tight sm:block">
@@ -39,7 +52,7 @@ export default function Navbar({ links = [], notifications = 0, notifKe = null }
           </span>
         </NavLink>
 
-        <nav className="ml-2 flex items-center gap-1 overflow-x-auto sm:ml-6">
+        <nav className="ml-2 hidden items-center gap-1 sm:ml-6 md:flex">
           {links.map((l) => (
             <NavLink
               key={l.to}
@@ -71,40 +84,7 @@ export default function Navbar({ links = [], notifications = 0, notifKe = null }
 
           <span className="mx-1.5 hidden h-6 w-px bg-white/20 sm:block" />
 
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setOpen((v) => !v)}
-              aria-expanded={open}
-              className="flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition hover:bg-white/10"
-            >
-              <Avatar initials={user?.initials ?? '??'} size={34} tone="onbrand" />
-              <IconChevronDown size={16} className="text-white/70" />
-            </button>
-
-            {open ? (
-              <div className="absolute right-0 top-[calc(100%+10px)] w-64 overflow-hidden rounded-2xl border border-line bg-surface shadow-pop animate-rise">
-                <div className="border-b border-line px-4 py-3">
-                  <p className="truncate text-sm font-bold text-ink">{user?.name}</p>
-                  <p className="truncate text-[12.5px] text-ink-2">{user?.email}</p>
-                  <p className="mt-1.5 inline-flex rounded-md bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand-ink">
-                    {user?.role === 'admin' ? 'Kemahasiswaan' : 'Mahasiswa'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout()
-                    navigate('/masuk', { replace: true })
-                  }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-[var(--critical)] transition hover:bg-surface-2"
-                >
-                  <IconLogout size={17} />
-                  Keluar
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <MenuAkun foto={foto} tone="onbrand" />
 
           <button
             type="button"
@@ -116,6 +96,46 @@ export default function Navbar({ links = [], notifications = 0, notifKe = null }
           </button>
         </div>
       </div>
+
+      <Laci buka={laci} onTutup={() => setLaci(false)}>
+        <nav className="py-2">
+          {links.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.end}
+              onClick={() => setLaci(false)}
+              className={({ isActive }) =>
+                'block px-5 py-3.5 text-[16px] font-bold transition ' +
+                (isActive ? 'bg-brand-soft text-brand-ink' : 'text-ink hover:bg-surface-2')
+              }
+            >
+              {l.label}
+            </NavLink>
+          ))}
+
+          <span className="my-2 block h-px bg-line" />
+
+          <NavLink
+            to={profilKe}
+            onClick={() => setLaci(false)}
+            className="block px-5 py-3.5 text-[16px] font-bold text-ink transition hover:bg-surface-2"
+          >
+            Profil
+          </NavLink>
+          <button
+            type="button"
+            onClick={() => {
+              setLaci(false)
+              logout()
+              navigate('/masuk', { replace: true })
+            }}
+            className="block w-full px-5 py-3.5 text-left text-[16px] font-bold text-[var(--critical)] transition hover:bg-surface-2"
+          >
+            Keluar
+          </button>
+        </nav>
+      </Laci>
     </header>
   )
 }

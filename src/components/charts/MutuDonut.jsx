@@ -58,7 +58,7 @@ export default function MutuDonut({ huruf, totalMahasiswa, height = 260 }) {
 
   return (
     <ChartFrame
-      title="Sebaran huruf mutu"
+      title="Grafik Sebaran Aspek"
       subtitle={'Dari ' + total.toLocaleString('id-ID') + ' mahasiswa yang sudah punya nilai'}
       height={height}
       table={{

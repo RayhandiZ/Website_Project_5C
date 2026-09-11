@@ -54,9 +54,10 @@ export default function Footer({ pintasan = [] }) {
         <section>
           <h2 className="text-[13.5px] font-bold">Helpdesk</h2>
           <address className="mt-3 space-y-1 text-[13.5px] not-italic leading-relaxed text-white/80">
-            <p>Gedung A, Lantai 9</p>
+            <p>Gedung B, Lantai 3 Ruang B315</p>
             <p>Jl. Scientia Boulevard, Gading Serpong,</p>
-            <p>Tangerang, Banten 15811</p>
+            <p>kel. Curug Sangereng, Kec. Kelapa Dua,</p>
+            <p>Kab. Tangerang, Prop.Banten 15811, Indonesia</p>
             <p className="pt-1">Senin–Jumat, 08.00–17.00 WIB</p>
           </address>
         </section>
@@ -94,7 +95,7 @@ export default function Footer({ pintasan = [] }) {
       </div>
 
       <div className="border-t border-white/15 py-4 text-center text-[13px] text-white/70">
-        © 2026 Rayhandi Zulmi - Universitas Multimedia Nusantara.
+        © Copyright Universitas Multimedia Nusantara. Designed by Rayhandi Zulmi
       </div>
     </footer>
   )

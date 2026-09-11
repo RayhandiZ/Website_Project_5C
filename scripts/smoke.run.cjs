@@ -15,20 +15,29 @@ const SESI = { student: JSON.stringify({ role:'student', email:'a@student.umn.ac
 
 const ISI = {
   '/mahasiswa': [
-    [/Nilai akhir/, 'kartu profil menyebut nilai akhir sekali'],
-    [/Pintasan[\s\S]{0,200}Transkrip[\s\S]{0,200}Sertifikat/, 'footer punya pintasan berikon'],
+    [/Nilai akhir/, 'ubin nilai akhir ada'],
+    [/(Sementara|Final)[\s\S]{0,40}berdasarkan \d+ dari \d+ aspek/, 'nilai akhir disertai status dan dasar hitungnya (R3)'],
+    [/Aspek dinilai[\s\S]{0,80}\/ \d+/, 'ubin jumlah aspek dinilai'],
+    [/Semua \d+[\s\S]{0,60}Final \d+[\s\S]{0,60}Berjalan \d+[\s\S]{0,60}Terkunci \d+/, 'tab aspek lengkap dengan jumlahnya'],
+    [/Perjalanan semester/, 'perjalanan semester ada'],
+    [/Belum dinilai/, 'daftar komponen yang belum dinilai ada'],
+    [/Sertifikat[\s\S]{0,60}(Siap diunduh|Belum tersedia)/, 'status sertifikat tetap terlihat'],
+    [/Pintasan[\s\S]{0,160}Road Map[\s\S]{0,160}History/, 'footer punya pintasan berikon'],
     [/Helpdesk[\s\S]{0,300}softskill@umn\.ac\.id/, 'helpdesk dan kontak tercantum'],
     [/Akses Cepat/, 'tidak ada lagi blok tombol mati', false],
-    [/Perjalanan program[\s\S]{0,900}Perjalanan program/, 'perjalanan program tidak diulang', false],
-    [/Nilai sementara[\s\S]{0,60}\/ 100/, 'nilai akhir tidak diulang sebagai StatTile', false],
-    [/Sertifikat[\s\S]{0,60}(Siap diunduh|Belum tersedia)/, 'status sertifikat tetap terlihat'],
+    /* Aksesoris rujukan yang sengaja tidak dibawa. */
+    [/<input[^>]*type="search"/, 'tidak ada kotak pencarian hiasan', false, true],
+    [/Upgrade|Kalender/, 'tidak ada kartu promosi atau kalender kosong', false],
   ],
   '/admin': [
-    [/Perlu dikerjakan/, 'ada daftar pekerjaan yang menunggu'],
+    [/Requires Review/, 'ada daftar pekerjaan yang menunggu'],
     [/(Lihat selengkapnya[\s\S]*){6}/, 'enam tautan Lihat selengkapnya ke halaman lain'],
     [/Mahasiswa terpantau[\s\S]{0,400}Rata-rata nilai softskill[\s\S]{0,400}Nilai sudah final/, 'hanya tiga angka utama'],
-    [/bobot sementara/, 'peringatan bobot sementara tetap ada'],
-    [/Sebaran huruf mutu/, 'ada satu grafik: sebaran huruf mutu'],
+    /* Catatan "bobot sementara" DIHAPUS dari halaman oleh pemilik proyek, jadi
+       pemeriksaannya ikut dilepas — bukan karena tidak penting. Kalimat itu yang
+       dulu memberi tahu bahwa rata-rata masih memakai bobot MENUNGGU_KONFIRMASI
+       dan bisa berubah. Bila nanti dipasang lagi, kembalikan baris ini. */
+    [/Grafik Sebaran Aspek/, 'ada satu grafik sebaran'],
     [/Nilai yang sudah masuk[\s\S]{0,40}%/, 'persentase nilai yang sudah masuk'],
     [/Di atas batas 70[\s\S]{0,40}%/, 'persentase di atas batas kelulusan'],
     [/Sudah dikunci[\s\S]{0,40}%/, 'persentase nilai yang sudah final'],
@@ -37,6 +46,29 @@ const ISI = {
     [/Kelengkapan nilai/, 'tidak ada lagi tabel kelengkapan padat', false],
     [/Rata-rata per aspek CPMK/, 'tidak ada lagi bar sepuluh aspek', false],
     [/Fakultas[\s\S]{0,60}Program studi[\s\S]{0,60}Angkatan[\s\S]{0,60}Semester/, 'tidak ada filter bertingkat', false],
+  ],
+  '/mahasiswa/profil': [
+    [/Nomor induk mahasiswa/, 'NIM tercantum di profil mahasiswa'],
+    [/Umum/, 'bagian Umum ada'],
+    [/Foto profil/, 'bagian Foto profil ada'],
+    [/Akademik/, 'bagian Akademik ada'],
+    [/Opsional/, 'bagian Opsional ada'],
+    [/Seret berkas ke sini/, 'area seret-dan-lepas foto tersedia'],
+    [/Perbarui profil/, 'ada tombol simpan yang benar-benar menyimpan'],
+    /* Inti pembedaan kolom: data milik institusi tidak boleh pernah dirender
+       sebagai kendali yang bisa diketik. Kalau email atau NIM sampai muncul di
+       dalam <input>, seseorang bisa menampilkan identitas orang lain. */
+    [/<input[^>]*type="tel"/, 'kolom telepon memang sebuah input', true, true],
+    [/<input[^>]*student\.umn\.ac\.id/, 'email tidak pernah menjadi kolom isian', false, true],
+    [/<input[^>]*value="\d{9,}"/, 'NIM tidak pernah menjadi kolom isian', false, true],
+  ],
+  '/admin/profil': [
+    [/Unit pengelola/, 'identitas unit tercantum'],
+    [/Penanggung jawab/, 'penanggung jawab tercantum'],
+    [/Periode kerja/, 'bagian Periode kerja ada'],
+    [/Perbarui profil/, 'ada tombol simpan yang benar-benar menyimpan'],
+    [/<input[^>]*type="tel"/, 'kolom telepon memang sebuah input', true, true],
+    [/<input[^>]*kemahasiswaan@umn\.ac\.id/, 'email unit tidak pernah menjadi kolom isian', false, true],
   ],
   '/admin/nilai': [
     [/Pilih semester terlebih dahulu/, 'gerbang semester menutup area kerja'],
@@ -50,17 +82,19 @@ const RUTE = [
   ['student', '/mahasiswa/transkrip', 'Transkrip'],
   ['student', '/mahasiswa/peta', 'Peta Perjalanan'],
   ['student', '/mahasiswa/sertifikat', 'Sertifikat'],
+  ['student', '/mahasiswa/profil', 'Profil mahasiswa'],
   ['admin', '/admin', 'Ringkasan admin'],
   ['admin', '/admin/mahasiswa', 'Data mahasiswa'],
   ['admin', '/admin/mahasiswa/DEMO-3', 'Detail mahasiswa'],
   ['admin', '/admin/program-studi', 'Program studi'],
   ['admin', '/admin/nilai', 'Input nilai'],
+  ['admin', '/admin/profil', 'Profil admin'],
 ]
 
 ;(async () => {
   const bundle = require('./bundle.cjs')
   const mod = require(bundle('smoke.jsx', '.smoke.cjs', { platform: 'browser', format: 'cjs', loader: { '.jsx': 'jsx' }, jsx: 'automatic' }))
-  const { render, daftarUji } = mod
+  const { render, daftarUji, ujiMenuHp, ujiAspek } = mod
   let gagal = 0
   for (const [peran, rute, nama] of RUTE) {
     w.localStorage.setItem('sk5c.session', SESI[peran])
@@ -71,8 +105,12 @@ const RUTE = [
       else {
         console.log('OK     ' + rute.padEnd(30) + String(html.length).padStart(7) + ' char   ' + nama)
         const teks = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-        for (const [pola, keterangan, harusAda = true] of (ISI[rute] || [])) {
-          const ada = pola.test(teks)
+        /* Slot keempat: uji terhadap MARKUP MENTAH, bukan teks. Tanpa ini pola
+           berbentuk tag seperti /<input[^>]*email/ tidak akan pernah cocok
+           karena seluruh tag sudah dibuang di baris atas — dan pemeriksaan
+           negatifnya akan selalu "lulus" tanpa benar-benar memeriksa apa pun. */
+        for (const [pola, keterangan, harusAda = true, mentah = false] of (ISI[rute] || [])) {
+          const ada = pola.test(mentah ? html : teks)
           const ok = harusAda ? ada : !ada
           if (!ok) gagal++
           console.log('       ' + (ok ? 'v ' : 'x ') + keterangan)
@@ -103,6 +141,80 @@ const RUTE = [
       (ok ? 'OK     ' : 'GAGAL  ') + 'sesi ' + m.email.padEnd(36) +
         'menampilkan ' + m.name + ' (' + m.nim + ')' + (bukanPersona ? '' : ' TAPI IDENTITAS PERSONA BOCOR'),
     )
+  }
+
+  /* --------------------------- sinkronisasi foto --------------------------- */
+  /* Foto yang disimpan di halaman profil harus muncul di SETIAP avatar pemilik
+     sesi, bukan hanya di halaman profilnya. Pernah lolos sebaliknya: fotonya
+     tersimpan rapi, tetapi avatar pojok kanan tetap menampilkan inisial karena
+     Avatar tidak pernah membaca simpanan itu. */
+  console.log('')
+  const mFoto = daftarUji()[0]
+  const TANDA = 'data:image/webp;base64,UJIFOTO'
+  w.localStorage.setItem(
+    'sk5c.session',
+    JSON.stringify({ role: 'student', studentId: mFoto.id, nim: mFoto.nim, email: mFoto.email, name: mFoto.name, initials: 'XX' }),
+  )
+  mod.simpanProfil(mod.kunciSesi({ role: 'student', nim: mFoto.nim }), { foto: TANDA })
+
+  for (const [rute, minimal] of [['/mahasiswa', 1], ['/mahasiswa/profil', 2]]) {
+    const html = await render(rute)
+    const jumlah = (html.match(/<img[^>]*UJIFOTO/g) || []).length
+    /* Avatar pojok kanan dikenali dari tombol "Menu akun" yang membungkusnya,
+       bukan dari ukurannya — ukuran berubah mengikuti desain, perannya tidak. */
+    const diNavbar = /aria-label="Menu akun"[^>]*>\s*<img[^>]*UJIFOTO/.test(html)
+    const ok = jumlah >= minimal && diNavbar
+    if (!ok) gagal++
+    console.log(
+      (ok ? 'OK     ' : 'GAGAL  ') +
+        'foto pada ' + rute.padEnd(24) +
+        jumlah + ' avatar memakai foto' +
+        (diNavbar ? ' (termasuk pojok kanan)' : ' — AVATAR POJOK KANAN MASIH INISIAL'),
+    )
+  }
+
+  /* ------------------------------ menu di ponsel --------------------------- */
+  console.log('')
+  for (const [peran, rute, harapTautan] of [['student', '/mahasiswa', 6], ['admin', '/admin', 5]]) {
+    w.localStorage.setItem('sk5c.session', SESI[peran])
+    const h = await ujiMenuHp(rute)
+
+    const wajib = [
+      ['tombol garis tiga ada', h.adaHamburger],
+      ['laci tertutup sebelum disentuh', h.laciTertutupAwal],
+      ['laci terbuka setelah ditekan', h.laciTerbuka],
+      ['laci memuat ' + harapTautan + ' tautan', h.tautanDiLaci === harapTautan, h.tautanDiLaci],
+      ['gulir halaman dikunci selama terbuka', h.gulirTerkunci],
+      ['laci menutup setelah memilih tautan', h.laciTertutupSetelahPilih],
+      ['gulir pulih setelah ditutup', h.gulirPulih],
+    ]
+    const rusak = wajib.filter(([, ok]) => !ok)
+    if (rusak.length) gagal += rusak.length
+    console.log((rusak.length ? 'GAGAL  ' : 'OK     ') + 'menu ponsel ' + rute)
+    for (const [ket, ok, rinci] of wajib) {
+      console.log('       ' + (ok ? 'v ' : 'x ') + ket + (ok || rinci === undefined ? '' : '  → ' + rinci))
+    }
+  }
+
+  /* ------------------------- aspek di dashboard mahasiswa ------------------ */
+  console.log('')
+  w.localStorage.setItem('sk5c.session', SESI.student)
+  const ha = await ujiAspek('/mahasiswa')
+  const cekAspek = [
+    ...Object.entries(ha.tabSesuai).map(([nama, x]) => [
+      'tab ' + nama + ': angka di tab sama dengan baris yang tampil',
+      x.terpilih && x.tertulis === x.tampil,
+      'tertulis ' + x.tertulis + ', tampil ' + x.tampil,
+    ]),
+    ['rincian tertutup sebelum diketuk', ha.rinciTertutupAwal],
+    ['rincian terbuka setelah diketuk', ha.rinciTerbuka],
+    ['rincian menutup saat diketuk lagi', ha.rinciTertutupLagi],
+  ]
+  const rusakAspek = cekAspek.filter(([, ok]) => !ok)
+  gagal += rusakAspek.length
+  console.log((rusakAspek.length ? 'GAGAL  ' : 'OK     ') + 'aspek di dashboard mahasiswa')
+  for (const [ket, ok, rinci] of cekAspek) {
+    console.log('       ' + (ok ? 'v ' : 'x ') + ket + (ok ? '' : '  → ' + rinci))
   }
 
   console.log(gagal ? '\n' + gagal + ' rute bermasalah' : '\nSeluruh rute merender tanpa galat')

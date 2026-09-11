@@ -7,7 +7,12 @@ import { AuthProvider } from '../src/lib/auth'
 import { ThemeProvider } from '../src/lib/theme'
 import { STUDENTS } from '../src/lib/mockData'
 
-export async function render(rute) {
+/* Dibuka untuk uji sinkronisasi foto profil. */
+export { kunciSesi, simpanProfil } from '../src/lib/profil'
+
+/* Memasang aplikasi utuh pada satu rute. Dipakai semua uji di berkas ini
+   supaya susunan provider tidak ditulis ulang di tiap fungsi. */
+async function pasang(rute) {
   const el = document.createElement('div')
   document.body.appendChild(el)
   const root = createRoot(el)
@@ -25,10 +30,85 @@ export async function render(rute) {
     )
   })
   await act(async () => { await new Promise((r) => setTimeout(r, 30)) })
+  const lepas = () => {
+    root.unmount()
+    el.remove()
+  }
+  return { el, lepas }
+}
+
+const klik = async (node) => {
+  await act(async () => {
+    node?.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }))
+  })
+}
+
+export async function render(rute) {
+  const { el, lepas } = await pasang(rute)
   const html = el.innerHTML
-  root.unmount()
-  el.remove()
+  lepas()
   return html
+}
+
+/**
+ * Menguji perilaku menu di layar kecil dengan benar-benar menekannya.
+ *
+ * Memeriksa markup saja tidak cukup: laci yang selalu ada di DOM, atau tombol
+ * yang tidak tersambung ke apa pun, tetap akan lolos. Yang diperiksa di sini
+ * adalah perubahan keadaan sesudah klik.
+ */
+export async function ujiMenuHp(rute) {
+  const { el, lepas } = await pasang(rute)
+  const cariLaci = () => el.querySelector('[role="dialog"][aria-label="Menu navigasi"]')
+
+  const hasil = {}
+  const hamburger = el.querySelector('[aria-label="Buka menu navigasi"]')
+  hasil.adaHamburger = !!hamburger
+  hasil.laciTertutupAwal = !cariLaci()
+
+  await klik(hamburger)
+  const laci = cariLaci()
+  hasil.laciTerbuka = !!laci
+  hasil.tautanDiLaci = laci ? laci.querySelectorAll('a').length : 0
+  hasil.gulirTerkunci = document.body.style.overflow === 'hidden'
+
+  await klik(laci?.querySelector('a'))
+  hasil.laciTertutupSetelahPilih = !cariLaci()
+  hasil.gulirPulih = document.body.style.overflow !== 'hidden'
+
+  lepas()
+  return hasil
+}
+
+/**
+ * Tab penyaring dan baris aspek yang bisa dibuka di dashboard mahasiswa.
+ * Angka di tab harus sama dengan jumlah baris yang benar-benar tampil, dan
+ * rincian komponen hanya ada di DOM setelah barisnya diketuk.
+ */
+export async function ujiAspek(rute) {
+  const { el, lepas } = await pasang(rute)
+  const tab = (nama) => [...el.querySelectorAll('[role="tab"]')].find((t) => t.textContent.startsWith(nama))
+  const angka = (t) => Number(t.textContent.replace(/\D+/g, ''))
+  const baris = () => [...el.querySelectorAll('button[aria-controls^="rinci-"]')]
+
+  const hasil = { tabSesuai: {} }
+  for (const nama of ['Semua', 'Final', 'Berjalan', 'Terkunci']) {
+    const t = tab(nama)
+    await klik(t)
+    hasil.tabSesuai[nama] = { tertulis: angka(t), tampil: baris().length, terpilih: t.getAttribute('aria-selected') === 'true' }
+  }
+
+  await klik(tab('Semua'))
+  const pertama = baris()[0]
+  const idRinci = pertama?.getAttribute('aria-controls')
+  hasil.rinciTertutupAwal = !el.querySelector('#' + idRinci)
+  await klik(pertama)
+  hasil.rinciTerbuka = !!el.querySelector('#' + idRinci) && pertama.getAttribute('aria-expanded') === 'true'
+  await klik(pertama)
+  hasil.rinciTertutupLagi = !el.querySelector('#' + idRinci)
+
+  lepas()
+  return hasil
 }
 
 /* Beberapa mahasiswa nyata untuk menguji identitas sesi. */

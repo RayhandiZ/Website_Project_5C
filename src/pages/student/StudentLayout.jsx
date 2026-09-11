@@ -1,100 +1,204 @@
-import { Outlet, useOutletContext } from 'react-router-dom'
-import Navbar from '../../components/Navbar'
+import { useState } from 'react'
+import { NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom'
 import Footer from '../../components/Footer'
-import SideMenu from '../../components/SideMenu'
-import { Avatar, HurufBadge } from '../../components/Ui'
-import { IconCertificate, IconGauge, IconList, IconRoute, IconTable } from '../../components/Icons'
-import { getStudent, personaAktif, transkripOf } from '../../lib/mockData'
+import Laci from '../../components/Laci'
+import MenuAkun from '../../components/MenuAkun'
+import {
+  IconCertificate,
+  IconGauge,
+  IconList,
+  IconLogo,
+  IconMenu,
+  IconMoon,
+  IconRoute,
+  IconSun,
+  IconTable,
+} from '../../components/Icons'
+import { getStudent, personaAktif } from '../../lib/mockData'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
+import { useTheme } from '../../lib/theme'
+import { kunciSesi, useProfil } from '../../lib/profil'
+
+/* --------------------------------------------------------------------------
+   Kerangka panel mahasiswa.
+
+   Sengaja BERBEDA dari panel Kemahasiswaan dan dari E-Learning: bukan bilah
+   biru pekat di atas dengan kartu profil di kiri, melainkan sidebar terang yang
+   mengambang di kiri, bilah atas yang menyatu dengan latar, dan kartu-kartu
+   bersudut lebar dengan bayangan pudar.
+
+   Yang diambil dari rujukan hanya suasananya — lapang, lembut, satu fokus per
+   baris. Aksesorisnya tidak: tidak ada kotak pencarian (tidak ada yang perlu
+   dicari di sepuluh aspek), tidak ada kalender (program ini tidak punya tenggat
+   yang diketahui aplikasi), tidak ada ikon tiga dimensi, tidak ada kartu
+   promosi. Setiap unsur di layar harus menjawab pertanyaan mahasiswa tentang
+   nilainya sendiri.
+
+   Kartu profil di kolom kiri versi lama dibuang: nama dan NIM pindah ke tombol
+   akun di kanan atas, nilai akhir pindah ke ubin pertama dashboard. Menu
+   samping yang dulu menumpuk di atas isi pada layar kecil kini tinggal di laci
+   garis tiga, jadi tidak lagi mendorong nilai ke bawah lipatan.
+   -------------------------------------------------------------------------- */
 
 /* Pintasan footer menunjuk ke halaman yang memang ada, bukan tautan hiasan. */
 const PINTASAN = [
-  { ke: '/mahasiswa/transkrip', label: 'Transkrip', icon: IconTable },
-  { ke: '/mahasiswa/peta', label: 'Peta Perjalanan', icon: IconRoute },
-  { ke: '/mahasiswa/riwayat', label: 'Riwayat', icon: IconList },
-  { ke: '/mahasiswa/sertifikat', label: 'Sertifikat', icon: IconCertificate },
+  { ke: '/mahasiswa/transkrip', label: 'Transcript', icon: IconTable },
+  { ke: '/mahasiswa/peta', label: 'Road Map', icon: IconRoute },
+  { ke: '/mahasiswa/riwayat', label: 'History', icon: IconList },
+  { ke: '/mahasiswa/sertifikat', label: 'Sertificate', icon: IconCertificate },
 ]
 
-const NAV = [
-  { to: '/mahasiswa', label: 'Ringkasan', end: true },
-  { to: '/mahasiswa/transkrip', label: 'Transkrip' },
-  { to: '/mahasiswa/peta', label: 'Peta Perjalanan' },
+const MENU = [
+  { to: '/mahasiswa', label: 'Dashboard', icon: IconGauge, end: true },
+  { to: '/mahasiswa/transkrip', label: 'Transcript', icon: IconTable },
+  { to: '/mahasiswa/peta', label: 'Road Map', icon: IconRoute },
+  { to: '/mahasiswa/riwayat', label: 'History', icon: IconList },
+  { to: '/mahasiswa/sertifikat', label: 'Certificate', icon: IconCertificate },
 ]
 
 export const useStudent = () => useOutletContext()
 
+/* Daftar menu — dipakai sidebar dan laci, supaya keduanya tidak pernah berbeda
+   isi. Penanda aktif berupa latar biru muda dengan teks biru tua (rasio kontras
+   di atas 9:1), lebih lembut daripada isian pekat panel Kemahasiswaan tetapi
+   tetap terbaca sekali lihat. */
+function DaftarMenu({ onPilih, besar = false }) {
+  return (
+    <ul className="space-y-1">
+      {MENU.map(({ to, label, icon: Icon, end }) => (
+        <li key={to}>
+          <NavLink
+            to={to}
+            end={end}
+            onClick={onPilih}
+            className={({ isActive }) =>
+              'flex items-center gap-3 rounded-2xl px-3.5 font-bold transition ' +
+              (besar ? 'py-3.5 text-[16px] ' : 'py-3 text-[14.5px] ') +
+              (isActive ? 'bg-brand-soft text-brand-ink' : 'text-ink-2 hover:bg-surface-2 hover:text-ink')
+            }
+          >
+            <Icon size={20} className="shrink-0" />
+            <span className="truncate">{label}</span>
+          </NavLink>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function TombolTema() {
+  const { theme, toggle } = useTheme()
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={theme === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+      className="grid h-10 w-10 place-items-center rounded-2xl border border-line bg-surface text-ink-2 transition hover:text-ink"
+    >
+      {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+    </button>
+  )
+}
+
 export default function StudentLayout() {
   // Ikut menghitung ulang begitu ada nilai yang masuk dari panel Kemahasiswaan.
   useStore()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [laci, setLaci] = useState(false)
+
   /* Yang tampil adalah mahasiswa yang sedang masuk. personaAktif() hanya
      jaring pengaman bila sesi lama belum menyimpan studentId. */
   const student = getStudent(user?.studentId) ?? personaAktif()
-  const t = transkripOf(student)
-
-  const menu = [
-    { to: '/mahasiswa', label: 'Ringkasan', icon: IconGauge, end: true },
-    { to: '/mahasiswa/transkrip', label: 'Transkrip Softskill', icon: IconTable },
-    { to: '/mahasiswa/peta', label: 'Peta Perjalanan', icon: IconRoute },
-    { to: '/mahasiswa/riwayat', label: 'Riwayat', icon: IconList },
-    { to: '/mahasiswa/sertifikat', label: 'Sertifikat', icon: IconCertificate },
-  ]
-
-  const inisial = student.name.split(' ').map((w) => w[0]).join('').slice(0, 2)
+  const { foto } = useProfil(kunciSesi(user, student.nim))
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar links={NAV} notifications={0} />
+    <div className="min-h-screen bg-bg lg:pl-[264px] print:pl-0">
+      {/* print:pl-0 wajib: sidebar disembunyikan saat mencetak, dan tanpa ini
+          transkrip cetakan tetap bergeser 264 px ke kanan lalu terpotong. */}
+      {/* -------------------------------- sidebar ------------------------------- */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] p-4 pr-0 lg:block print:hidden">
+        <div className="kartu flex h-full flex-col px-3 py-5">
+          <NavLink to="/mahasiswa" className="mb-7 flex items-center gap-2.5 px-2.5">
+            <IconLogo size={36} />
+            <span className="text-[15px] font-extrabold tracking-tight text-ink">
+              UMN <span className="text-[var(--accent)]">SOFTSKILL</span>
+            </span>
+          </NavLink>
 
-      <main className="mx-auto w-full max-w-shell flex-1 px-4 py-7 sm:px-6">
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          {/* Kartu identitas sengaja ringkas: siapa saya, dan satu angka.
-              Perjalanan program serta penjelasan nilai tinggal di halaman
-              Ringkasan — mengulanginya di sini hanya membuat sesak. */}
-          <aside className="space-y-5 lg:sticky lg:top-[84px] lg:self-start print:hidden">
-            <div className="card overflow-hidden">
-              <div className="h-1 bg-brand" />
-              <div className="px-5 py-5">
-                <div className="flex items-center gap-3.5">
-                  <Avatar initials={inisial} size={48} />
-                  <div className="min-w-0">
-                    <h1 className="truncate text-[15.5px] font-extrabold leading-tight text-ink">
-                      {student.name}
-                    </h1>
-                    <p className="mt-0.5 truncate text-[12.5px] tabular-nums text-ink-2">{student.nim}</p>
-                  </div>
-                </div>
-
-                <p className="mt-3.5 truncate text-[13px] text-ink-2" title={student.email}>
-                  {student.email}
-                </p>
-                <p className="mt-1 text-[13px] font-semibold text-ink-2">
-                  {student.program} · Angkatan {student.angkatanLabel}
-                </p>
-
-                <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
-                  <span className="text-[13px] text-ink-2">Nilai akhir</span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-[19px] font-extrabold leading-none tabular-nums text-ink">
-                      {t.akhir.nilai ?? '—'}
-                    </span>
-                    <HurufBadge nilai={t.akhir.nilai} sementara={t.akhir.status !== 'final'} />
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <SideMenu items={menu} />
-          </aside>
-
-          <div className="min-w-0">
-            <Outlet context={student} />
-          </div>
+          <nav aria-label="Menu mahasiswa">
+            <DaftarMenu />
+          </nav>
         </div>
-      </main>
+      </aside>
 
-      <Footer pintasan={PINTASAN} />
+      <div className="flex min-h-screen flex-col">
+        {/* ------------------------------ bilah atas ----------------------------- */}
+        <header className="sticky top-0 z-20 bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] backdrop-blur print:hidden">
+          <div className="mx-auto flex h-[72px] w-full max-w-[1200px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <button
+              type="button"
+              onClick={() => setLaci(true)}
+              aria-label="Buka menu navigasi"
+              aria-expanded={laci}
+              className="-ml-1 grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-ink transition hover:bg-surface lg:hidden"
+            >
+              <IconMenu size={23} />
+            </button>
+
+            <NavLink to="/mahasiswa" className="flex items-center gap-2 lg:hidden">
+              <IconLogo size={32} />
+              <span className="hidden text-[14px] font-extrabold tracking-tight text-ink sm:block">
+                UMN <span className="text-[var(--accent)]">SOFTSKILL</span>
+              </span>
+            </NavLink>
+
+            <div className="ml-auto flex items-center gap-2">
+              <TombolTema />
+              <MenuAkun
+                foto={foto}
+                tone="terang"
+                rinci={{ judul: student.name, sub: student.nim + ' · ' + student.program }}
+              />
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-4 pt-2 sm:px-6 lg:px-8">
+          <Outlet context={student} />
+        </main>
+
+        <Footer pintasan={PINTASAN} />
+      </div>
+
+      {/* --------------------------- laci layar kecil -------------------------- */}
+      <Laci buka={laci} onTutup={() => setLaci(false)}>
+        <nav aria-label="Menu mahasiswa" className="p-3">
+          <DaftarMenu besar onPilih={() => setLaci(false)} />
+
+          <span className="my-3 block h-px bg-line" />
+
+          <NavLink
+            to="/mahasiswa/profil"
+            onClick={() => setLaci(false)}
+            className="block rounded-2xl px-3.5 py-3.5 text-[16px] font-bold text-ink transition hover:bg-surface-2"
+          >
+            Profil
+          </NavLink>
+          <button
+            type="button"
+            onClick={() => {
+              setLaci(false)
+              logout()
+              navigate('/masuk', { replace: true })
+            }}
+            className="block w-full rounded-2xl px-3.5 py-3.5 text-left text-[16px] font-bold text-[var(--critical)] transition hover:bg-surface-2"
+          >
+            Keluar
+          </button>
+        </nav>
+      </Laci>
     </div>
   )
 }

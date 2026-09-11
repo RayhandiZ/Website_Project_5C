@@ -1,201 +1,540 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Badge, CatatanKaki, HurufBadge, ScoreBar, Terkunci } from '../../components/Ui'
 import {
-  Badge,
-  Card,
-  CardHeader,
-  CatatanKaki,
-  HurufBadge,
-  ScoreBar,
-  ScoreRing,
-  Terkunci,
-} from '../../components/Ui'
-import {
-  IconAlert,
   IconCertificate,
+  IconCheck,
+  IconChevronDown,
   IconChevronRight,
+  IconClock,
+  IconGauge,
   IconLock,
   IconTable,
-  IconTarget,
 } from '../../components/Icons'
-import { getArea } from '../../lib/curriculum'
-import { kelayakanSertifikat, labelNilaiAkhir } from '../../lib/rules'
-import { transkripOf } from '../../lib/mockData'
+import { CONFIG } from '../../lib/config'
+import { SUMBER, getArea } from '../../lib/curriculum'
+import { kelayakanSertifikat } from '../../lib/rules'
+import { PERIODE_AKTIF, labelPeriode, transkripOf } from '../../lib/mockData'
 import { useStudent } from './StudentLayout'
 import { useStore } from '../../lib/store'
+
+/* --------------------------------------------------------------------------
+   Dashboard mahasiswa.
+
+   Urutannya mengikuti pertanyaan yang biasanya muncul berurutan di kepala
+   mahasiswa: berapa nilai saya → sudah sejauh mana → aspek mana saja dan
+   statusnya → apa yang masih ditunggu.
+
+   Aturan yang dijaga di halaman ini:
+   - SATU angka besar saja (nilai akhir). Angka lain lebih kecil supaya mata
+     tahu harus mulai dari mana.
+   - Nilai akhir selalu disertai status dan dasar hitungnya (R3).
+   - Aspek terkunci tampil dengan gembok dan semester pembukaannya, tidak
+     pernah sebagai 0 (R2).
+   - Warna hijau/kuning hanya untuk status, dan selalu berikut ikon + label.
+   -------------------------------------------------------------------------- */
+
+const sapaan = () => {
+  const jam = new Date().getHours()
+  if (jam < 11) return 'Selamat pagi'
+  if (jam < 15) return 'Selamat siang'
+  if (jam < 18) return 'Selamat sore'
+  return 'Selamat malam'
+}
+
+const NADA_IKON = {
+  brand: 'bg-brand-soft text-brand-ink',
+  good: 'bg-[color-mix(in_srgb,var(--good)_14%,transparent)] text-[var(--good)]',
+  warning:
+    'bg-[color-mix(in_srgb,var(--warning)_22%,transparent)] text-[color-mix(in_srgb,var(--warning)_70%,var(--text-primary))]',
+}
+
+/* --------------------------------- ubin ----------------------------------- */
+
+function Ubin({ ikon: Ikon, nada = 'brand', judul, ke, children }) {
+  const isi = (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[14px] font-semibold text-ink-2">{judul}</p>
+        <span className={'grid h-10 w-10 shrink-0 place-items-center rounded-2xl ' + NADA_IKON[nada]}>
+          <Ikon size={20} />
+        </span>
+      </div>
+      <div className="mt-2">{children}</div>
+    </>
+  )
+  const kelas = 'kartu block px-5 py-5'
+  return ke ? (
+    <Link to={ke} className={kelas + ' transition hover:border-brand-ink'}>
+      {isi}
+    </Link>
+  ) : (
+    <div className={kelas}>{isi}</div>
+  )
+}
+
+/* ------------------------------ status aspek ------------------------------ */
+
+function StatusAspek({ a }) {
+  if (a.status === 'final') {
+    return (
+      <Badge tone="good" icon={IconCheck}>
+        Final
+      </Badge>
+    )
+  }
+  if (a.status === 'terkunci') {
+    return (
+      <Badge tone="neutral" icon={IconLock}>
+        Semester {a.aspek.semester}
+      </Badge>
+    )
+  }
+  if (a.status === 'menunggu') {
+    return (
+      <Badge tone="neutral" icon={IconClock}>
+        Belum dinilai
+      </Badge>
+    )
+  }
+  return (
+    <Badge tone="warning" icon={IconClock}>
+      Sementara
+    </Badge>
+  )
+}
+
+const TAB = [
+  { id: 'semua', label: 'Semua', cocok: () => true },
+  { id: 'final', label: 'Final', cocok: (a) => a.status === 'final' },
+  { id: 'berjalan', label: 'Berjalan', cocok: (a) => a.status === 'berjalan' || a.status === 'menunggu' },
+  { id: 'terkunci', label: 'Terkunci', cocok: (a) => a.status === 'terkunci' },
+]
+
+/* Satu baris aspek. Diketuk untuk membuka rincian komponennya — sumber nilai
+   dan komponen mana yang belum masuk — tanpa harus pindah ke transkrip. */
+function BarisAspek({ a, terbuka, onToggle }) {
+  const area = getArea(a.aspek.area)
+  const idRinci = 'rinci-' + a.aspekId
+
+  return (
+    <li className="border-b border-line last:border-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={terbuka}
+        aria-controls={idRinci}
+        className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-surface-2 sm:px-6"
+      >
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-surface-2 text-[13px] font-extrabold text-ink">
+          {a.aspek.kode}
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px] font-bold text-ink">{a.aspek.nama}</span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-2">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: area?.warna }} />
+            <span className="truncate">
+              {area?.nama} · Semester {a.aspek.semester}
+            </span>
+          </span>
+        </span>
+
+        <span className="hidden shrink-0 sm:block">
+          <StatusAspek a={a} />
+        </span>
+
+        <span className="w-10 shrink-0 text-right">
+          {a.terkunci ? (
+            <IconLock size={17} className="ml-auto text-ink-3" />
+          ) : (
+            <span className="text-[19px] font-extrabold text-ink">{a.nilai ?? '—'}</span>
+          )}
+        </span>
+
+        <IconChevronDown
+          size={18}
+          className={'shrink-0 text-ink-3 transition-transform ' + (terbuka ? 'rotate-180' : '')}
+        />
+      </button>
+
+      {terbuka ? (
+        <div id={idRinci} className="px-5 pb-5 sm:px-6 sm:pl-[88px]">
+          <div className="mb-3 sm:hidden">
+            <StatusAspek a={a} />
+          </div>
+
+          {a.terkunci ? (
+            <Terkunci semester={a.aspek.semester} />
+          ) : (
+            <>
+              <ul className="space-y-2">
+                {a.komponen.map((k) => (
+                  <li key={k.id} className="flex items-center gap-3 text-[14px]">
+                    <span className="min-w-0 flex-1 text-ink">
+                      {k.label}
+                      <span className="text-ink-3"> · {SUMBER[k.sumber]?.label ?? k.sumber}</span>
+                    </span>
+                    <span className="shrink-0 font-bold text-ink">
+                      {k.terisi ? k.nilai : <span className="font-semibold text-ink-3">belum masuk</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {a.alasanSementara ? (
+                <p className="mt-3 text-[13.5px] leading-relaxed text-ink-2">{a.alasanSementara}.</p>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
+function AspekSaya({ t }) {
+  const [tab, setTab] = useState('semua')
+  const [bukaId, setBukaId] = useState(null)
+
+  const aktif = TAB.find((x) => x.id === tab)
+  const daftar = t.aspek.filter(aktif.cocok)
+
+  return (
+    <section className="kartu overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
+        <div>
+          <h2 className="text-[17px] font-extrabold text-ink">Aspek penilaian</h2>
+          <p className="mt-0.5 text-[13.5px] text-ink-2">Ketuk salah satu untuk melihat komponen nilainya</p>
+        </div>
+      </div>
+
+      <div role="tablist" aria-label="Saring aspek" className="flex gap-1 overflow-x-auto border-b border-line px-4 sm:px-5">
+        {TAB.map((x) => {
+          const jumlah = t.aspek.filter(x.cocok).length
+          const pilih = x.id === tab
+          return (
+            <button
+              key={x.id}
+              type="button"
+              role="tab"
+              aria-selected={pilih}
+              onClick={() => {
+                setTab(x.id)
+                setBukaId(null)
+              }}
+              className={
+                '-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-[14px] font-bold transition ' +
+                (pilih ? 'border-brand-ink text-brand-ink' : 'border-transparent text-ink-2 hover:text-ink')
+              }
+            >
+              {x.label}
+              <span className="ml-1.5 font-semibold text-ink-3">{jumlah}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {daftar.length ? (
+        <ul>
+          {daftar.map((a) => (
+            <BarisAspek
+              key={a.aspekId}
+              a={a}
+              terbuka={bukaId === a.aspekId}
+              onToggle={() => setBukaId((id) => (id === a.aspekId ? null : a.aspekId))}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p className="px-6 py-10 text-center text-[14px] text-ink-2">Belum ada aspek di kelompok ini.</p>
+      )}
+
+      <Link
+        to="/mahasiswa/transkrip"
+        className="flex items-center justify-center gap-1.5 border-t border-line px-5 py-3.5 text-[14px] font-bold text-brand-ink transition hover:bg-surface-2"
+      >
+        Lihat transkrip lengkap
+        <IconChevronRight size={16} />
+      </Link>
+    </section>
+  )
+}
+
+/* ------------------------------ capaian area ------------------------------ */
+
+function CapaianArea({ t }) {
+  return (
+    <section className="kartu px-5 py-5 sm:px-6">
+      <h2 className="text-[17px] font-extrabold text-ink">Capaian per area</h2>
+      <p className="mt-0.5 text-[13.5px] text-ink-2">Rata-rata aspek yang sudah dinilai di tiap area</p>
+
+      <ul className="mt-5 space-y-5">
+        {Object.values(t.area).map((x) => {
+          const terkunci = x.nilai == null
+          return (
+            <li key={x.area.id}>
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-2 text-[14.5px] font-bold text-ink">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: x.area.warna }} />
+                  <span className="truncate">
+                    Area {x.area.id} · {x.area.nama}
+                  </span>
+                </span>
+                {terkunci ? (
+                  <IconLock size={16} className="shrink-0 text-ink-3" />
+                ) : (
+                  <span className="shrink-0 text-[17px] font-extrabold text-ink">{x.nilai}</span>
+                )}
+              </div>
+              {terkunci ? (
+                <Terkunci semester={Math.min(...x.aspek.map((a) => a.aspek.semester))} />
+              ) : (
+                <>
+                  <ScoreBar value={x.nilai} color={x.area.warna} />
+                  <p className="mt-1.5 text-[12.5px] text-ink-3">
+                    {x.dinilai} dari {x.total} aspek dinilai
+                  </p>
+                </>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+/* --------------------------- perjalanan semester -------------------------- */
+
+function PerjalananSemester({ t }) {
+  const daftar = Object.values(t.semester)
+  return (
+    <section className="kartu px-5 py-5 sm:px-6">
+      <h2 className="text-[17px] font-extrabold text-ink">Perjalanan semester</h2>
+
+      <ol className="mt-4">
+        {daftar.map((s, i) => {
+          const keadaan = s.terkunci ? 'terkunci' : s.ditutup ? 'selesai' : 'berjalan'
+          const terakhir = i === daftar.length - 1
+          return (
+            <li key={s.semester} className="relative flex gap-3.5 pb-5 last:pb-0">
+              {!terakhir ? (
+                <span
+                  aria-hidden="true"
+                  className={
+                    'absolute left-[15px] top-8 h-[calc(100%-24px)] w-0.5 rounded-full ' +
+                    (keadaan === 'selesai' ? 'bg-brand-ink' : 'bg-line')
+                  }
+                />
+              ) : null}
+
+              <span
+                className={
+                  'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full ' +
+                  (keadaan === 'selesai'
+                    ? 'bg-brand-ink text-white'
+                    : keadaan === 'berjalan'
+                      ? 'border-2 border-brand-ink bg-surface text-brand-ink'
+                      : 'bg-surface-2 text-ink-3')
+                }
+              >
+                {keadaan === 'selesai' ? (
+                  <IconCheck size={16} />
+                ) : keadaan === 'terkunci' ? (
+                  <IconLock size={14} />
+                ) : (
+                  <span className="h-2.5 w-2.5 rounded-full bg-brand-ink" />
+                )}
+              </span>
+
+              <span className="min-w-0 flex-1 pt-0.5">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-[15px] font-bold text-ink">Semester {s.semester}</span>
+                  {keadaan !== 'terkunci' ? (
+                    <span className="text-[15px] font-extrabold text-ink">{s.nilai ?? '—'}</span>
+                  ) : null}
+                </span>
+                <span className="mt-0.5 block text-[13px] text-ink-2">
+                  {keadaan === 'selesai'
+                    ? 'Selesai · ' + s.total + ' aspek'
+                    : keadaan === 'berjalan'
+                      ? 'Sedang berjalan · ' + s.dinilai + ' dari ' + s.total + ' aspek dinilai'
+                      : 'Belum dibuka · ' + s.total + ' aspek'}
+                </span>
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+
+      <Link
+        to="/mahasiswa/peta"
+        className="mt-5 inline-flex items-center gap-1.5 text-[14px] font-bold text-brand-ink hover:underline"
+      >
+        Buka Road Map
+        <IconChevronRight size={16} />
+      </Link>
+    </section>
+  )
+}
+
+/* ------------------------------ belum dinilai ----------------------------- */
+
+function BelumDinilai({ t }) {
+  const daftar = t.aspek
+    .filter((a) => !a.terkunci)
+    .flatMap((a) => a.komponenKosong.map((k) => ({ aspek: a.aspek, k })))
+
+  return (
+    <section className="kartu px-5 py-5 sm:px-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[17px] font-extrabold text-ink">Belum dinilai</h2>
+        {daftar.length ? (
+          <span className="text-[13.5px] font-semibold text-ink-2">{daftar.length} komponen</span>
+        ) : null}
+      </div>
+
+      {daftar.length ? (
+        <>
+          <ul className="mt-4 space-y-3">
+            {daftar.slice(0, 4).map(({ aspek, k }) => (
+              <li key={k.id} className="flex items-start gap-3">
+                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-[12px] font-extrabold text-ink">
+                  {aspek.kode}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[14px] font-semibold leading-snug text-ink">{k.label}</span>
+                  <span className="block text-[12.5px] text-ink-2">
+                    dari {SUMBER[k.sumber]?.label ?? k.sumber}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {daftar.length > 4 ? (
+            <p className="mt-3 text-[13px] text-ink-2">
+              dan {daftar.length - 4} komponen lain — lihat di transkrip.
+            </p>
+          ) : null}
+          <CatatanKaki>
+            Nilai biasanya diunggah dosen pengampu atau unit kemahasiswaan pada akhir periode ujian.
+          </CatatanKaki>
+        </>
+      ) : (
+        <p className="mt-3 flex items-start gap-2 text-[14px] leading-relaxed text-ink-2">
+          <IconCheck size={17} className="mt-0.5 shrink-0 text-[var(--good)]" />
+          Semua komponen pada semester yang sudah dibuka telah dinilai.
+        </p>
+      )}
+    </section>
+  )
+}
+
+/* --------------------------------- halaman -------------------------------- */
 
 export default function Dashboard() {
   // Ikut menghitung ulang begitu ada nilai yang masuk dari panel Kemahasiswaan.
   useStore()
   const student = useStudent()
   const t = transkripOf(student)
-  const label = labelNilaiAkhir(t.akhir)
   const sertifikat = kelayakanSertifikat(student)
+  const { akhir } = t
 
-  const dinilai = t.aspek.filter((a) => a.nilai != null)
-  const terlemah = [...dinilai].sort((a, b) => a.nilai - b.nilai)[0]
-  const menunggu = t.aspek.filter((a) => !a.terkunci && a.komponenKosong.length > 0)
+  const terkunci = t.aspek.filter((a) => a.terkunci).length
+  const persenDinilai = akhir.aspekTotal ? Math.round((akhir.aspekDinilai / akhir.aspekTotal) * 100) : 0
 
   return (
     <div className="space-y-6">
-      {/* sapaan + nilai sementara */}
-      <Card className="card-pad">
-        <div className="flex flex-wrap items-center gap-8">
-          <ScoreRing value={t.akhir.nilai ?? 0} />
-          <div className="min-w-[260px] flex-1">
-            <h1 className="text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-              Halo, {student.name.split(' ')[0]}
-            </h1>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <HurufBadge nilai={t.akhir.nilai} panjang />
-              <Badge tone={t.akhir.status === 'final' ? 'good' : 'warning'}>{label.teks}</Badge>
-            </div>
-            <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-2">{label.rinci}</p>
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              <Link to="/mahasiswa/transkrip" className="btn-primary">
-                <IconTable size={17} />
-                Buka transkrip
-              </Link>
-              <Link to="/mahasiswa/peta" className="btn-ghost">
-                Lihat peta perjalanan
-                <IconChevronRight size={16} />
-              </Link>
-            </div>
+      {/* -------------------------------- sapaan ------------------------------- */}
+      <header className="flex flex-wrap items-end justify-between gap-4 pt-2">
+        <div className="min-w-0">
+          <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-ink sm:text-[28px]">
+            {sapaan()}, {student.name.split(' ')[0]}
+          </h1>
+          <p className="mt-1.5 text-[15px] text-ink-2">
+            Semester {student.semesterAktif} dari {CONFIG.TOTAL_SEMESTER_PROGRAM} · Periode{' '}
+            {labelPeriode(PERIODE_AKTIF)}
+          </p>
+        </div>
+        <Link to="/mahasiswa/transkrip" className="btn-primary rounded-2xl px-5 py-3">
+          <IconTable size={18} />
+          Open Transcript
+        </Link>
+      </header>
 
-            <Link
-              to="/mahasiswa/sertifikat"
-              className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-4 text-[13.5px] transition hover:text-brand-ink"
-            >
-              <IconCertificate size={17} className="shrink-0 text-ink-3" />
-              <span className="text-ink-2">Sertifikat</span>
-              <span className="font-bold text-ink">
-                {sertifikat.layak ? 'Siap diunduh' : 'Belum tersedia'}
-              </span>
-              <span className="text-ink-3">
-                {sertifikat.layak ? '' : '\u00b7 ' + sertifikat.gagal.length + ' syarat belum terpenuhi'}
-              </span>
-              <IconChevronRight size={15} className="ml-auto shrink-0 text-ink-3" />
-            </Link>
+      {/* --------------------------------- ubin -------------------------------- */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Ubin ikon={IconGauge} judul="Nilai akhir">
+          {/* Satu-satunya angka besar di halaman ini. */}
+          <p className="text-[48px] font-extrabold leading-none tracking-tight text-ink">
+            {akhir.nilai ?? '—'}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {akhir.nilai != null ? <HurufBadge nilai={akhir.nilai} /> : null}
+            <Badge tone={akhir.status === 'final' ? 'good' : 'warning'} icon={akhir.status === 'final' ? IconCheck : IconClock}>
+              {akhir.status === 'final' ? 'Final' : 'Sementara'}
+            </Badge>
           </div>
+          <p className="mt-2 text-[13px] text-ink-2">{akhir.basis}</p>
+        </Ubin>
+
+        <Ubin ikon={IconTable} judul="Aspek dinilai">
+          <p className="text-[32px] font-extrabold leading-none tracking-tight text-ink">
+            {akhir.aspekDinilai}
+            <span className="text-[18px] font-bold text-ink-3"> / {akhir.aspekTotal}</span>
+          </p>
+          <div
+            className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--grid)]"
+            role="meter"
+            aria-valuemin={0}
+            aria-valuemax={akhir.aspekTotal}
+            aria-valuenow={akhir.aspekDinilai}
+            aria-label="Aspek yang sudah dinilai"
+          >
+            <div className="h-full rounded-full bg-brand-ink" style={{ width: persenDinilai + '%' }} />
+          </div>
+          <p className="mt-2 text-[13px] text-ink-2">
+            {terkunci ? terkunci + ' aspek belum dibuka' : 'Semua aspek sudah dibuka'}
+          </p>
+        </Ubin>
+
+        <Ubin ikon={IconCheck} nada="good" judul="Aspek final">
+          <p className="text-[32px] font-extrabold leading-none tracking-tight text-ink">
+            {akhir.aspekFinal}
+            <span className="text-[18px] font-bold text-ink-3"> / {akhir.aspekTotal}</span>
+          </p>
+          <p className="mt-4 text-[13px] leading-relaxed text-ink-2">
+            {akhir.aspekFinal ? 'Sudah dikunci dan tidak akan berubah lagi' : 'Belum ada aspek yang dikunci'}
+          </p>
+        </Ubin>
+
+        <Ubin
+          ikon={IconCertificate}
+          nada={sertifikat.layak ? 'good' : 'warning'}
+          judul="Sertifikat"
+          ke="/mahasiswa/sertifikat"
+        >
+          <p className="text-[22px] font-extrabold leading-tight text-ink">
+            {sertifikat.layak ? 'Siap diunduh' : 'Belum tersedia'}
+          </p>
+          <p className="mt-3 flex items-center gap-1 text-[13px] text-ink-2">
+            {sertifikat.layak ? 'Buka untuk mengunduh' : sertifikat.gagal.length + ' syarat belum terpenuhi'}
+            <IconChevronRight size={15} className="shrink-0" />
+          </p>
+        </Ubin>
+      </section>
+
+      {/* ------------------------------- dua kolom ----------------------------- */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-6">
+          <AspekSaya t={t} />
+          <CapaianArea t={t} />
         </div>
-      </Card>
-
-      {/* perjalanan program */}
-      <Card className="card-pad">
-        <h2 className="text-[15px] font-bold text-ink">Perjalanan program</h2>
-        <ol className="mt-4 grid gap-3 sm:grid-cols-3">
-          {Object.values(t.semester).map((s) => {
-            const keadaan = s.terkunci ? 'terkunci' : s.ditutup ? 'selesai' : 'berjalan'
-            return (
-              <li
-                key={s.semester}
-                className={
-                  'rounded-xl border px-4 py-3.5 ' +
-                  (keadaan === 'berjalan' ? 'border-brand-ink bg-brand-soft' : 'border-line')
-                }
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-extrabold text-ink">Semester {s.semester}</span>
-                  {keadaan === 'terkunci' ? (
-                    <IconLock size={15} className="text-ink-3" />
-                  ) : (
-                    <span className="text-[15px] font-extrabold tabular-nums text-ink">{s.nilai ?? '—'}</span>
-                  )}
-                </div>
-                <p className="mt-1 text-[12.5px] text-ink-2">
-                  {keadaan === 'selesai'
-                    ? 'Selesai · ' + s.total + ' aspek'
-                    : keadaan === 'berjalan'
-                      ? 'Berjalan · ' + s.dinilai + ' dari ' + s.total + ' aspek dinilai'
-                      : 'Belum dibuka · ' + s.total + ' aspek'}
-                </p>
-              </li>
-            )
-          })}
-        </ol>
-      </Card>
-
-      {/* cluster */}
-      <Card>
-        <CardHeader
-          title="Capaian per cluster"
-          subtitle="Cluster yang belum dibuka ditandai gembok, bukan angka nol"
-          icon={IconTarget}
-        />
-        <ul className="grid gap-px bg-line sm:grid-cols-2">
-          {Object.values(t.cluster).map((c) => {
-            const warna = getArea(c.cluster.area)?.warna
-            const terkunci = c.nilai == null
-            return (
-              <li key={c.cluster.id} className="bg-surface px-5 py-4">
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-[13px] font-bold text-ink">
-                      <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: warna }} />
-                      {c.cluster.id}
-                    </span>
-                    <span className="mt-0.5 block text-[13px] leading-snug text-ink-2">{c.cluster.nama}</span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    {terkunci ? (
-                      <IconLock size={16} className="ml-auto text-ink-3" />
-                    ) : (
-                      <span className="text-[18px] font-extrabold tabular-nums text-ink">{c.nilai}</span>
-                    )}
-                  </span>
-                </div>
-                {terkunci ? (
-                  <Terkunci semester={Math.min(...c.aspek.map((a) => a.aspek.semester))} />
-                ) : (
-                  <>
-                    <ScoreBar value={c.nilai} color={warna} />
-                    <p className="mt-1.5 text-[12px] text-ink-3">
-                      {c.dinilai} dari {c.total} aspek dinilai
-                    </p>
-                  </>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      </Card>
-
-      {/* yang perlu diperhatikan */}
-      <Card>
-        <CardHeader title="Yang perlu diperhatikan" subtitle="Titik lemah dan nilai yang belum masuk" icon={IconAlert} />
-        <div className="card-pad space-y-4">
-          {terlemah ? (
-            <div className="rounded-xl border border-line px-4 py-3.5">
-              <p className="text-[13px] font-bold text-ink">
-                Nilai terendah: {terlemah.aspek.kode} {terlemah.aspek.nama}
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
-                {terlemah.nilai} — {terlemah.aspek.deskripsi}
-              </p>
-            </div>
-          ) : null}
-
-          {menunggu.length ? (
-            <div>
-              <p className="mb-2 text-[13px] font-bold text-ink">Komponen yang belum masuk dari penilai</p>
-              <ul className="space-y-1.5">
-                {menunggu.slice(0, 4).map((a) => (
-                  <li key={a.aspek.id} className="text-[13px] leading-relaxed text-ink-2">
-                    <span className="font-semibold text-ink">{a.aspek.kode}</span> —{' '}
-                    {a.komponenKosong.map((x) => x.label).join(', ')}
-                  </li>
-                ))}
-              </ul>
-              <CatatanKaki>
-                Nilai biasanya diunggah dosen pengampu atau unit kemahasiswaan pada akhir periode ujian.
-              </CatatanKaki>
-            </div>
-          ) : (
-            <p className="text-[13px] text-ink-2">
-              Semua komponen pada semester yang sudah dibuka telah dinilai.
-            </p>
-          )}
+        <div className="space-y-6">
+          <PerjalananSemester t={t} />
+          <BelumDinilai t={t} />
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
