@@ -20,7 +20,10 @@ const ISI = {
     [/Aspek dinilai[\s\S]{0,80}\/ \d+/, 'ubin jumlah aspek dinilai'],
     [/Semua \d+[\s\S]{0,60}Final \d+[\s\S]{0,60}Berjalan \d+[\s\S]{0,60}Terkunci \d+/, 'tab aspek lengkap dengan jumlahnya'],
     [/Perjalanan semester/, 'perjalanan semester ada'],
-    [/Belum dinilai/, 'daftar komponen yang belum dinilai ada'],
+    /* Komponen yang belum dinilai pindah ke lonceng bilah atas — kartunya
+       tidak boleh tertinggal di badan halaman. */
+    [/<h2[^>]*>Belum dinilai<\/h2>/, 'kartu Belum dinilai tidak lagi di badan halaman', false, true],
+    [/aria-label="\d+ komponen belum dinilai"/, 'lonceng Belum dinilai ada di bilah atas', true, true],
     [/Sertifikat[\s\S]{0,60}(Siap diunduh|Belum tersedia)/, 'status sertifikat tetap terlihat'],
     [/Pintasan[\s\S]{0,160}Road Map[\s\S]{0,160}History/, 'footer punya pintasan berikon'],
     [/Helpdesk[\s\S]{0,300}softskill@umn\.ac\.id/, 'helpdesk dan kontak tercantum'],
@@ -94,7 +97,7 @@ const RUTE = [
 ;(async () => {
   const bundle = require('./bundle.cjs')
   const mod = require(bundle('smoke.jsx', '.smoke.cjs', { platform: 'browser', format: 'cjs', loader: { '.jsx': 'jsx' }, jsx: 'automatic' }))
-  const { render, daftarUji, ujiMenuHp, ujiAspek } = mod
+  const { render, daftarUji, ujiMenuHp, ujiAspek, ujiRingkasHp, BATAS_BARIS_ASPEK } = mod
   let gagal = 0
   for (const [peran, rute, nama] of RUTE) {
     w.localStorage.setItem('sk5c.session', SESI[peran])
@@ -201,11 +204,21 @@ const RUTE = [
   w.localStorage.setItem('sk5c.session', SESI.student)
   const ha = await ujiAspek('/mahasiswa')
   const cekAspek = [
-    ...Object.entries(ha.tabSesuai).map(([nama, x]) => [
-      'tab ' + nama + ': angka di tab sama dengan baris yang tampil',
-      x.terpilih && x.tertulis === x.tampil,
-      'tertulis ' + x.tertulis + ', tampil ' + x.tampil,
-    ]),
+    /* Tab menulis jumlah SEBENARNYA; yang tampil dibatasi BATAS_BARIS_ASPEK.
+       Bila ada yang terpotong, tautan bawah wajib menyebut berapa sisanya —
+       kalau tidak, lima baris itu terbaca seolah seluruh aspeknya. */
+    ...Object.entries(ha.tabSesuai).map(([nama, x]) => {
+      const harap = Math.min(x.tertulis, BATAS_BARIS_ASPEK)
+      const sisa = x.tertulis - harap
+      const tautanBenar = sisa > 0
+        ? x.tautan.some((t) => t.includes('Lihat ' + sisa + ' aspek lainnya'))
+        : x.tautan.some((t) => t.includes('Lihat transkrip lengkap'))
+      return [
+        'tab ' + nama + ': ' + x.tampil + ' dari ' + x.tertulis + ' tampil' + (sisa ? ', tautan menyebut ' + sisa + ' sisanya' : ''),
+        x.terpilih && x.tampil === harap && tautanBenar,
+        'tertulis ' + x.tertulis + ', tampil ' + x.tampil + ', tautan: ' + x.tautan.join(' | '),
+      ]
+    }),
     ['rincian tertutup sebelum diketuk', ha.rinciTertutupAwal],
     ['rincian terbuka setelah diketuk', ha.rinciTerbuka],
     ['rincian menutup saat diketuk lagi', ha.rinciTertutupLagi],
@@ -215,6 +228,29 @@ const RUTE = [
   console.log((rusakAspek.length ? 'GAGAL  ' : 'OK     ') + 'aspek di dashboard mahasiswa')
   for (const [ket, ok, rinci] of cekAspek) {
     console.log('       ' + (ok ? 'v ' : 'x ') + ket + (ok ? '' : '  → ' + rinci))
+  }
+
+  /* ------------------------ penghemat gulir di ponsel --------------------- */
+  console.log('')
+  w.localStorage.setItem('sk5c.session', SESI.student)
+  const hr = await ujiRingkasHp('/mahasiswa')
+  const cekRingkas = [
+    ['ubin ringkasan terlipat saat dibuka', hr.ubinTerlipatAwal],
+    ['ubin membentang setelah Rincian ditekan', hr.ubinTerbuka],
+    ['nilai akhir tetap di luar lipatan (R3)', hr.nilaiAkhirTetapDiLuar],
+    ['di layar lebar keempat ubin tetap utuh', hr.tetapUtuhDiLayarLebar],
+    ['lonceng Belum dinilai ada', hr.adaLonceng],
+    ['panel lonceng tertutup sebelum ditekan', hr.panelTertutupAwal],
+    ['panel lonceng terbuka setelah ditekan', hr.panelTerbuka],
+    ['angka di lonceng sama dengan isi panel', hr.itemDiPanel === hr.angkaLonceng && hr.angkaLonceng > 0,
+      'lonceng ' + hr.angkaLonceng + ', panel ' + hr.itemDiPanel],
+    ['panel menutup dengan Escape', hr.panelTutupDenganEscape],
+  ]
+  const rusakRingkas = cekRingkas.filter(([, ok]) => !ok)
+  gagal += rusakRingkas.length
+  console.log((rusakRingkas.length ? 'GAGAL  ' : 'OK     ') + 'penghemat gulir di ponsel')
+  for (const [ket, ok, rinci] of cekRingkas) {
+    console.log('       ' + (ok ? 'v ' : 'x ') + ket + (ok || rinci === undefined ? '' : '  → ' + rinci))
   }
 
   console.log(gagal ? '\n' + gagal + ' rute bermasalah' : '\nSeluruh rute merender tanpa galat')

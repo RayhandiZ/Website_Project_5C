@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, CatatanKaki, HurufBadge, ScoreBar, Terkunci } from '../../components/Ui'
+import { Badge, HurufBadge, ScoreBar, Terkunci } from '../../components/Ui'
 import {
   IconCertificate,
   IconCheck,
@@ -104,6 +104,11 @@ function StatusAspek({ a }) {
   )
 }
 
+/* Dashboard hanya menampilkan sebagian; daftar lengkap tempatnya di
+   transkrip. Angka di tab tetap jumlah SEBENARNYA, supaya mahasiswa tahu ada
+   berapa aspek yang tidak ikut tampil di sini. */
+export const BATAS_BARIS_ASPEK = 5
+
 const TAB = [
   { id: 'semua', label: 'Semua', cocok: () => true },
   { id: 'final', label: 'Final', cocok: (a) => a.status === 'final' },
@@ -197,7 +202,9 @@ function AspekSaya({ t }) {
   const [bukaId, setBukaId] = useState(null)
 
   const aktif = TAB.find((x) => x.id === tab)
-  const daftar = t.aspek.filter(aktif.cocok)
+  const semua = t.aspek.filter(aktif.cocok)
+  const daftar = semua.slice(0, BATAS_BARIS_ASPEK)
+  const sisa = semua.length - daftar.length
 
   return (
     <section className="kartu overflow-hidden">
@@ -208,7 +215,14 @@ function AspekSaya({ t }) {
         </div>
       </div>
 
-      <div role="tablist" aria-label="Saring aspek" className="flex gap-1 overflow-x-auto border-b border-line px-4 sm:px-5">
+      {/* overflow-y-hidden wajib: begitu satu sumbu diberi overflow-x-auto,
+          sumbu lainnya ikut menjadi auto, dan -mb-px pada tab memunculkan
+          batang gulir vertikal setinggi 1 px di ujung kanan baris ini. */}
+      <div
+        role="tablist"
+        aria-label="Saring aspek"
+        className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line px-4 sm:px-5"
+      >
         {TAB.map((x) => {
           const jumlah = t.aspek.filter(x.cocok).length
           const pilih = x.id === tab
@@ -253,7 +267,7 @@ function AspekSaya({ t }) {
         to="/mahasiswa/transkrip"
         className="flex items-center justify-center gap-1.5 border-t border-line px-5 py-3.5 text-[14px] font-bold text-brand-ink transition hover:bg-surface-2"
       >
-        Lihat transkrip lengkap
+        {sisa > 0 ? 'Lihat ' + sisa + ' aspek lainnya di transkrip' : 'Lihat transkrip lengkap'}
         <IconChevronRight size={16} />
       </Link>
     </section>
@@ -378,58 +392,6 @@ function PerjalananSemester({ t }) {
   )
 }
 
-/* ------------------------------ belum dinilai ----------------------------- */
-
-function BelumDinilai({ t }) {
-  const daftar = t.aspek
-    .filter((a) => !a.terkunci)
-    .flatMap((a) => a.komponenKosong.map((k) => ({ aspek: a.aspek, k })))
-
-  return (
-    <section className="kartu px-5 py-5 sm:px-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[17px] font-extrabold text-ink">Belum dinilai</h2>
-        {daftar.length ? (
-          <span className="text-[13.5px] font-semibold text-ink-2">{daftar.length} komponen</span>
-        ) : null}
-      </div>
-
-      {daftar.length ? (
-        <>
-          <ul className="mt-4 space-y-3">
-            {daftar.slice(0, 4).map(({ aspek, k }) => (
-              <li key={k.id} className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-[12px] font-extrabold text-ink">
-                  {aspek.kode}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[14px] font-semibold leading-snug text-ink">{k.label}</span>
-                  <span className="block text-[12.5px] text-ink-2">
-                    dari {SUMBER[k.sumber]?.label ?? k.sumber}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          {daftar.length > 4 ? (
-            <p className="mt-3 text-[13px] text-ink-2">
-              dan {daftar.length - 4} komponen lain — lihat di transkrip.
-            </p>
-          ) : null}
-          <CatatanKaki>
-            Nilai biasanya diunggah dosen pengampu atau unit kemahasiswaan pada akhir periode ujian.
-          </CatatanKaki>
-        </>
-      ) : (
-        <p className="mt-3 flex items-start gap-2 text-[14px] leading-relaxed text-ink-2">
-          <IconCheck size={17} className="mt-0.5 shrink-0 text-[var(--good)]" />
-          Semua komponen pada semester yang sudah dibuka telah dinilai.
-        </p>
-      )}
-    </section>
-  )
-}
-
 /* --------------------------------- halaman -------------------------------- */
 
 export default function Dashboard() {
@@ -441,6 +403,7 @@ export default function Dashboard() {
   const { akhir } = t
 
   const terkunci = t.aspek.filter((a) => a.terkunci).length
+  const [rinciBuka, setRinciBuka] = useState(false)
   const persenDinilai = akhir.aspekTotal ? Math.round((akhir.aspekDinilai / akhir.aspekTotal) * 100) : 0
 
   return (
@@ -476,63 +439,91 @@ export default function Dashboard() {
             </Badge>
           </div>
           <p className="mt-2 text-[13px] text-ink-2">{akhir.basis}</p>
-        </Ubin>
 
-        <Ubin ikon={IconTable} judul="Aspek dinilai">
-          <p className="text-[32px] font-extrabold leading-none tracking-tight text-ink">
-            {akhir.aspekDinilai}
-            <span className="text-[18px] font-bold text-ink-3"> / {akhir.aspekTotal}</span>
-          </p>
-          <div
-            className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--grid)]"
-            role="meter"
-            aria-valuemin={0}
-            aria-valuemax={akhir.aspekTotal}
-            aria-valuenow={akhir.aspekDinilai}
-            aria-label="Aspek yang sudah dinilai"
+          {/* Hanya di ponsel. Nilai akhir tetap terlihat sebagai kepala; tiga
+              ubin lainnya dilipat di bawahnya, dan ringkasannya tetap tertulis
+              di tombol ini supaya tidak ada yang benar-benar tersembunyi. */}
+          <button
+            type="button"
+            onClick={() => setRinciBuka((v) => !v)}
+            aria-expanded={rinciBuka}
+            aria-controls="ubin-rinci"
+            className="mt-4 flex w-full items-center gap-2 border-t border-line pt-3.5 text-left sm:hidden"
           >
-            <div className="h-full rounded-full bg-brand-ink" style={{ width: persenDinilai + '%' }} />
-          </div>
-          <p className="mt-2 text-[13px] text-ink-2">
-            {terkunci ? terkunci + ' aspek belum dibuka' : 'Semua aspek sudah dibuka'}
-          </p>
+            <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-2">
+              {akhir.aspekDinilai}/{akhir.aspekTotal} dinilai · {akhir.aspekFinal} final · sertifikat{' '}
+              {sertifikat.layak ? 'siap' : 'belum'}
+            </span>
+            <span className="shrink-0 text-[13.5px] font-bold text-brand-ink">
+              {rinciBuka ? 'Tutup' : 'Rincian'}
+            </span>
+            <IconChevronDown
+              size={17}
+              className={'shrink-0 text-brand-ink transition-transform ' + (rinciBuka ? 'rotate-180' : '')}
+            />
+          </button>
         </Ubin>
 
-        <Ubin ikon={IconCheck} nada="good" judul="Aspek final">
-          <p className="text-[32px] font-extrabold leading-none tracking-tight text-ink">
-            {akhir.aspekFinal}
-            <span className="text-[18px] font-bold text-ink-3"> / {akhir.aspekTotal}</span>
-          </p>
-          <p className="mt-4 text-[13px] leading-relaxed text-ink-2">
-            {akhir.aspekFinal ? 'Sudah dikunci dan tidak akan berubah lagi' : 'Belum ada aspek yang dikunci'}
-          </p>
-        </Ubin>
+        {/* sm:contents melebur pembungkus ini di layar lebar, sehingga ketiga
+            ubin kembali menjadi anggota grid induknya seperti biasa. Di ponsel
+            ia tersembunyi sampai tombol Rincian ditekan. */}
+        <div id="ubin-rinci" className={(rinciBuka ? 'grid' : 'hidden') + ' gap-4 sm:contents'}>
+          <Ubin ikon={IconTable} judul="Aspek dinilai">
+            <p className="text-[32px] font-extrabold leading-none tracking-tight text-ink">
+              {akhir.aspekDinilai}
+              <span className="text-[18px] font-bold text-ink-3"> / {akhir.aspekTotal}</span>
+            </p>
+            <div
+              className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--grid)]"
+              role="meter"
+              aria-valuemin={0}
+              aria-valuemax={akhir.aspekTotal}
+              aria-valuenow={akhir.aspekDinilai}
+              aria-label="Aspek yang sudah dinilai"
+            >
+              <div className="h-full rounded-full bg-brand-ink" style={{ width: persenDinilai + '%' }} />
+            </div>
+            <p className="mt-2 text-[13px] text-ink-2">
+              {terkunci ? terkunci + ' aspek belum dibuka' : 'Semua aspek sudah dibuka'}
+            </p>
+          </Ubin>
 
-        <Ubin
-          ikon={IconCertificate}
-          nada={sertifikat.layak ? 'good' : 'warning'}
-          judul="Sertifikat"
-          ke="/mahasiswa/sertifikat"
-        >
-          <p className="text-[22px] font-extrabold leading-tight text-ink">
-            {sertifikat.layak ? 'Siap diunduh' : 'Belum tersedia'}
-          </p>
-          <p className="mt-3 flex items-center gap-1 text-[13px] text-ink-2">
-            {sertifikat.layak ? 'Buka untuk mengunduh' : sertifikat.gagal.length + ' syarat belum terpenuhi'}
-            <IconChevronRight size={15} className="shrink-0" />
-          </p>
-        </Ubin>
+          <Ubin ikon={IconCheck} nada="good" judul="Aspek final">
+            <p className="text-[32px] font-extrabold leading-none tracking-tight text-ink">
+              {akhir.aspekFinal}
+              <span className="text-[18px] font-bold text-ink-3"> / {akhir.aspekTotal}</span>
+            </p>
+            <p className="mt-4 text-[13px] leading-relaxed text-ink-2">
+              {akhir.aspekFinal ? 'Sudah dikunci dan tidak akan berubah lagi' : 'Belum ada aspek yang dikunci'}
+            </p>
+          </Ubin>
+
+          <Ubin
+            ikon={IconCertificate}
+            nada={sertifikat.layak ? 'good' : 'warning'}
+            judul="Sertifikat"
+            ke="/mahasiswa/sertifikat"
+          >
+            <p className="text-[22px] font-extrabold leading-tight text-ink">
+              {sertifikat.layak ? 'Siap diunduh' : 'Belum tersedia'}
+            </p>
+            <p className="mt-3 flex items-center gap-1 text-[13px] text-ink-2">
+              {sertifikat.layak ? 'Buka untuk mengunduh' : sertifikat.gagal.length + ' syarat belum terpenuhi'}
+              <IconChevronRight size={15} className="shrink-0" />
+            </p>
+          </Ubin>
+        </div>
       </section>
 
       {/* ------------------------------- dua kolom ----------------------------- */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0">
           <AspekSaya t={t} />
-          <CapaianArea t={t} />
         </div>
+        {/* Komponen yang belum dinilai pindah ke lonceng di bilah atas. */}
         <div className="space-y-6">
           <PerjalananSemester t={t} />
-          <BelumDinilai t={t} />
+          <CapaianArea t={t} />
         </div>
       </div>
     </div>

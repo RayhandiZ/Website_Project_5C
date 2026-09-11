@@ -14,11 +14,12 @@ import {
   IconSun,
   IconTable,
 } from '../../components/Icons'
-import { getStudent, personaAktif } from '../../lib/mockData'
+import { getStudent, personaAktif, transkripOf } from '../../lib/mockData'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
 import { useTheme } from '../../lib/theme'
 import { kunciSesi, useProfil } from '../../lib/profil'
+import LoncengBelumDinilai from './LoncengBelumDinilai'
 
 /* --------------------------------------------------------------------------
    Kerangka panel mahasiswa.
@@ -112,6 +113,7 @@ export default function StudentLayout() {
      jaring pengaman bila sesi lama belum menyimpan studentId. */
   const student = getStudent(user?.studentId) ?? personaAktif()
   const { foto } = useProfil(kunciSesi(user, student.nim))
+  const t = transkripOf(student)
 
   return (
     <div className="min-h-screen bg-bg lg:pl-[264px] print:pl-0">
@@ -155,6 +157,7 @@ export default function StudentLayout() {
             </NavLink>
 
             <div className="ml-auto flex items-center gap-2">
+              <LoncengBelumDinilai t={t} />
               <TombolTema />
               <MenuAkun
                 foto={foto}

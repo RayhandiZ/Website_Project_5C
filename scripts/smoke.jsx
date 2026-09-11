@@ -9,6 +9,7 @@ import { STUDENTS } from '../src/lib/mockData'
 
 /* Dibuka untuk uji sinkronisasi foto profil. */
 export { kunciSesi, simpanProfil } from '../src/lib/profil'
+export { BATAS_BARIS_ASPEK } from '../src/pages/student/Dashboard'
 
 /* Memasang aplikasi utuh pada satu rute. Dipakai semua uji di berkas ini
    supaya susunan provider tidak ditulis ulang di tiap fungsi. */
@@ -95,7 +96,13 @@ export async function ujiAspek(rute) {
   for (const nama of ['Semua', 'Final', 'Berjalan', 'Terkunci']) {
     const t = tab(nama)
     await klik(t)
-    hasil.tabSesuai[nama] = { tertulis: angka(t), tampil: baris().length, terpilih: t.getAttribute('aria-selected') === 'true' }
+    const tautan = [...el.querySelectorAll('a[href="/mahasiswa/transkrip"]')].map((a) => a.textContent)
+    hasil.tabSesuai[nama] = {
+      tertulis: angka(t),
+      tampil: baris().length,
+      terpilih: t.getAttribute('aria-selected') === 'true',
+      tautan,
+    }
   }
 
   await klik(tab('Semua'))
@@ -106,6 +113,39 @@ export async function ujiAspek(rute) {
   hasil.rinciTerbuka = !!el.querySelector('#' + idRinci) && pertama.getAttribute('aria-expanded') === 'true'
   await klik(pertama)
   hasil.rinciTertutupLagi = !el.querySelector('#' + idRinci)
+
+  lepas()
+  return hasil
+}
+
+/**
+ * Dua penghemat gulir di ponsel: ubin ringkasan yang dilipat, dan lonceng
+ * "Belum dinilai" yang menggantikan kartu di badan halaman.
+ */
+export async function ujiRingkasHp(rute) {
+  const { el, lepas } = await pasang(rute)
+  const hasil = {}
+
+  const wadah = el.querySelector('#ubin-rinci')
+  const pelipat = el.querySelector('button[aria-controls="ubin-rinci"]')
+  hasil.ubinTerlipatAwal = !!wadah && wadah.className.split(' ').includes('hidden')
+  hasil.tetapUtuhDiLayarLebar = !!wadah && wadah.className.includes('sm:contents')
+  await klik(pelipat)
+  hasil.ubinTerbuka = !!wadah && wadah.className.split(' ').includes('grid') && pelipat.getAttribute('aria-expanded') === 'true'
+  hasil.nilaiAkhirTetapDiLuar = !!el.querySelector('#ubin-rinci') && !el.querySelector('#ubin-rinci').textContent.includes('Nilai akhir')
+
+  const lonceng = el.querySelector('button[aria-label$="komponen belum dinilai"]')
+  hasil.adaLonceng = !!lonceng
+  hasil.angkaLonceng = lonceng ? Number(lonceng.getAttribute('aria-label').match(/\d+/)[0]) : 0
+  const panel = () => el.querySelector('[role="dialog"][aria-label="Komponen belum dinilai"]')
+  hasil.panelTertutupAwal = !panel()
+  await klik(lonceng)
+  hasil.panelTerbuka = !!panel()
+  hasil.itemDiPanel = panel() ? panel().querySelectorAll('li').length : 0
+  await act(async () => {
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  })
+  hasil.panelTutupDenganEscape = !panel()
 
   lepas()
   return hasil
