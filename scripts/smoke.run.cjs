@@ -50,6 +50,14 @@ const ISI = {
     [/Rata-rata per aspek CPMK/, 'tidak ada lagi bar sepuluh aspek', false],
     [/Fakultas[\s\S]{0,60}Program studi[\s\S]{0,60}Angkatan[\s\S]{0,60}Semester/, 'tidak ada filter bertingkat', false],
   ],
+  '/mahasiswa/peta': [
+    [/FASE 4|Segera hadir/i, 'bukan lagi halaman segera hadir', false],
+    [/Anda sedang menjalani Semester 2 dari 3/, 'posisi mahasiswa disebut di kepala halaman'],
+    [/Anda di sini/, 'penanda posisi ada'],
+    [/Anda di sini[\s\S]*Anda di sini/, 'penanda posisi hanya satu', false],
+    [/Pancasila[\s\S]{0,4000}Teamwork/, 'semester berjalan terbuka lebih dulu'],
+    [/Religiositas|Civics/, 'semester lain tertutup saat halaman dibuka', false],
+  ],
   '/mahasiswa/profil': [
     [/Nomor induk mahasiswa/, 'NIM tercantum di profil mahasiswa'],
     [/Umum/, 'bagian Umum ada'],
@@ -97,7 +105,7 @@ const RUTE = [
 ;(async () => {
   const bundle = require('./bundle.cjs')
   const mod = require(bundle('smoke.jsx', '.smoke.cjs', { platform: 'browser', format: 'cjs', loader: { '.jsx': 'jsx' }, jsx: 'automatic' }))
-  const { render, daftarUji, ujiMenuHp, ujiAspek, ujiRingkasHp, BATAS_BARIS_ASPEK } = mod
+  const { render, daftarUji, ujiMenuHp, ujiAspek, ujiRingkasHp, ujiPeta, perAngkatan, BATAS_BARIS_ASPEK } = mod
   let gagal = 0
   for (const [peran, rute, nama] of RUTE) {
     w.localStorage.setItem('sk5c.session', SESI[peran])
@@ -251,6 +259,53 @@ const RUTE = [
   console.log((rusakRingkas.length ? 'GAGAL  ' : 'OK     ') + 'penghemat gulir di ponsel')
   for (const [ket, ok, rinci] of cekRingkas) {
     console.log('       ' + (ok ? 'v ' : 'x ') + ket + (ok || rinci === undefined ? '' : '  → ' + rinci))
+  }
+
+  /* -------------------------------- road map ------------------------------ */
+  console.log('')
+  w.localStorage.setItem('sk5c.session', SESI.student)
+  const hp = await ujiPeta('/mahasiswa/peta')
+  const sama = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  const cekPeta = [
+    ['semester berjalan (2) terbuka lebih dulu', sama(hp.awal, [2]), JSON.stringify(hp.awal)],
+    ['membuka Semester 1 menutup Semester 2', sama(hp.setelahSem1, [1]), JSON.stringify(hp.setelahSem1)],
+    ['Semester 1 memuat kegiatan yang sudah dijalani', /Kegiatan yang sudah dijalani/.test(hp.sem1) && /Religiositas/.test(hp.sem1)],
+    ['Semester 3 (terkunci) tetap bisa dibuka', sama(hp.setelahSem3, [3]), JSON.stringify(hp.setelahSem3)],
+    ['Semester 3 memperlihatkan kegiatan yang akan datang', /Kegiatan yang akan dijalani/.test(hp.sem3) && /Civics/.test(hp.sem3)],
+    /* R2: aspek yang belum dibuka tidak pernah punya angka, dan kegiatannya
+       tidak boleh ditulis "belum masuk" seolah terlambat. */
+    ['Semester 3 tanpa angka: tiap aspek bertanda gembok', (hp.sem3.match(/Dibuka pada Semester 3/g) || []).length === 3],
+    ['Semester 3 tidak menulis "belum masuk"', !/belum masuk/.test(hp.sem3)],
+    ['semester bisa ditutup kembali', sama(hp.setelahTutup, []), JSON.stringify(hp.setelahTutup)],
+  ]
+  const rusakPeta = cekPeta.filter(([, ok]) => !ok)
+  gagal += rusakPeta.length
+  console.log((rusakPeta.length ? 'GAGAL  ' : 'OK     ') + 'road map')
+  for (const [ket, ok, rinci] of cekPeta) {
+    console.log('       ' + (ok ? 'v ' : 'x ') + ket + (ok || rinci === undefined ? '' : '  → ' + rinci))
+  }
+
+  /* Road Map untuk tiap posisi semester, bukan hanya persona Semester 2. */
+  for (const m of perAngkatan()) {
+    w.localStorage.setItem(
+      'sk5c.session',
+      JSON.stringify({ role: 'student', studentId: m.id, nim: m.nim, email: m.email, name: m.name, initials: 'XX' }),
+    )
+    const html = await render('/mahasiswa/peta')
+    const teks = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+    const galat = html.includes('Aplikasi gagal dimuat')
+    const tamat = m.statusAngkatan === 'terkunci'
+    const kalimat = tamat
+      ? /Seluruh 3 semester program sudah Anda selesaikan/.test(teks)
+      : new RegExp('Anda sedang menjalani Semester ' + m.semesterAktif + ' dari 3').test(teks)
+    const penanda = (teks.match(/Anda di sini/g) || []).length === (tamat ? 0 : 1)
+    const ok = !galat && kalimat && penanda
+    if (!ok) gagal++
+    console.log(
+      (ok ? 'OK     ' : 'GAGAL  ') + 'road map angkatan ' + m.angkatanLabel.padEnd(11) +
+        (tamat ? 'tamat' : 'semester ' + m.semesterAktif) +
+        (galat ? ' — GALAT RENDER' : '') + (kalimat ? '' : ' — kalimat posisi salah') + (penanda ? '' : ' — penanda posisi salah'),
+    )
   }
 
   console.log(gagal ? '\n' + gagal + ' rute bermasalah' : '\nSeluruh rute merender tanpa galat')

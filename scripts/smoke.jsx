@@ -151,6 +151,33 @@ export async function ujiRingkasHp(rute) {
   return hasil
 }
 
+/**
+ * Road Map: semester berjalan terbuka lebih dulu, hanya satu yang terbuka
+ * sekaligus, dan semester terkunci memperlihatkan kegiatannya tanpa angka.
+ */
+export async function ujiPeta(rute) {
+  const { el, lepas } = await pasang(rute)
+  const kepala = (n) => el.querySelector('button[aria-controls="semester-' + n + '"]')
+  const isi = (n) => el.querySelector('#semester-' + n)
+  const terbuka = () => [1, 2, 3].filter((n) => isi(n))
+
+  const hasil = { awal: terbuka() }
+
+  await klik(kepala(1))
+  hasil.setelahSem1 = terbuka()
+  hasil.sem1 = isi(1)?.textContent ?? ''
+
+  await klik(kepala(3))
+  hasil.setelahSem3 = terbuka()
+  hasil.sem3 = isi(3)?.textContent ?? ''
+
+  await klik(kepala(3))
+  hasil.setelahTutup = terbuka()
+
+  lepas()
+  return hasil
+}
+
 /* Beberapa mahasiswa nyata untuk menguji identitas sesi. */
 export function daftarUji() {
   const pilih = (f) => STUDENTS.find(f)
@@ -159,4 +186,14 @@ export function daftarUji() {
     pilih((m) => m.program === 'Perhotelan'),
     pilih((m) => m.program === 'Jurnalistik'),
   ].filter(Boolean)
+}
+
+/* Satu mahasiswa dari tiap angkatan — untuk cabang tampilan yang bergantung
+   pada posisi semester (baru mulai, di tengah, di akhir, sudah tamat). */
+export function perAngkatan() {
+  const hasil = []
+  for (const m of STUDENTS) {
+    if (!hasil.some((x) => x.angkatanId === m.angkatanId)) hasil.push(m)
+  }
+  return hasil
 }

@@ -80,7 +80,7 @@ export default function LoncengBelumDinilai({ t }) {
               <span className="text-[13px] font-semibold text-ink-2">{jumlah} komponen</span>
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
-              Anda tidak perlu melakukan apa pun — nilai ini sedang ditunggu dari penilai.
+              Menunggu konfirmasi lebih lanjut kepada dosen terkait.
             </p>
           </div>
 
@@ -110,7 +110,7 @@ export default function LoncengBelumDinilai({ t }) {
           <div className="border-t border-line bg-surface-2 px-4 py-3">
             <p className="flex items-start gap-1.5 text-[12.5px] leading-snug text-ink-3">
               <IconInfo size={13} className="mt-px shrink-0" />
-              Nilai biasanya diunggah dosen pengampu atau unit kemahasiswaan pada akhir periode ujian.
+              Nilai akan diunggah dosen pengampu atau unit kemahasiswaan pada akhir periode ujian.
             </p>
             <Link
               to="/mahasiswa/transkrip"
